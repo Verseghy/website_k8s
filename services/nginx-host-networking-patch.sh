@@ -1,0 +1,1 @@
+kubectl -n ingress patch daemonset nginx-ingress-microk8s-controller --patch="$(<nginx-host-networking.yaml)"

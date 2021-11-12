@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-ssr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-ssr
+  template:
+    metadata:
+      labels:
+        app: frontend-ssr
+    spec:
+      containers:
+        - name: app
+          image: twodcube/fe-ssr
+          ports:
+            - containerPort: 4000
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-ssr-svc
+spec:
+  selector:
+    app: frontend-ssr
+  ports:
+    - name: frontend-ssr
+      protocol: TCP
+      port: 80
+      targetPort: 4000

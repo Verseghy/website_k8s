@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-frontend-ssr
+  annotations:
+    kubernetes.io/ingress.class: "public"
+spec:
+  rules:
+    - host: test.verseghy-gimnazium.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-ssr-svc
+                port:
+                  number: 80
