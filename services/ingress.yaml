@@ -1,9 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-frontend-ssr
+  name: website-ingress
   annotations:
+    acme.cert-manager.io/http01-edit-in-place: "true"
     kubernetes.io/ingress.class: "public"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   rules:
     - host: test.verseghy-gimnazium.net
@@ -16,3 +18,7 @@ spec:
                 name: frontend-ssr-svc
                 port:
                   number: 80
+  tls:
+    - hosts:
+        - test.verseghy-gimnazium.net
+      secretName: test-verseghy-gimnazium-net-tls
