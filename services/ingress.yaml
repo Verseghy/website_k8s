@@ -18,7 +18,18 @@ spec:
                 name: frontend-ssr-svc
                 port:
                   number: 80
+    - host: backend.test.verseghy-gimnazium.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-svc
+                port:
+                  number: 80
   tls:
     - hosts:
         - test.verseghy-gimnazium.net
+        - backend.test.verseghy-gimnazium.net
       secretName: test-verseghy-gimnazium-net-tls
