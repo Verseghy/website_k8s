@@ -1,1 +1,1 @@
-microk8s enable dns ingress storage
+microk8s enable dns ingress storage rbac
