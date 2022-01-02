@@ -29,7 +29,7 @@ spec:
         - name: app
           image: verseghy/website_backend
           ports:
-            - containerPort: 8181
+            - containerPort: 80
           imagePullPolicy: Always
           env:
             - name: APP_KEY
@@ -52,6 +52,9 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: mysql-root-password
+          volumeMounts:
+            - mountPath: /var/www/storage
+              name: backend-persistent-storage
       volumes:
         - name: backend-persistent-storage
           persistentVolumeClaim:
@@ -79,4 +82,4 @@ spec:
     - name: backend
       protocol: TCP
       port: 80
-      targetPort: 8181
+      targetPort: 80
