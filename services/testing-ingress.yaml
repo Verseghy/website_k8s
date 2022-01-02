@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: website-ingress
+  annotations:
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    kubernetes.io/ingress.class: "public"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  namespace: testing
+spec:
+  rules:
+    - host: backend2.test.verseghy-gimnazium.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-svc
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - backend2.test.verseghy-gimnazium.net
+      secretName: test-verseghy-gimnazium-net-tls
