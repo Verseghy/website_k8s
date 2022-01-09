@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: app
+          image: smrtrfszm/vfg-backend2
+          ports:
+            - containerPort: 3000
+          imagePullPolicy: Always
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: mysql-website_backend2-password
+            - name: DB_USERNAME
+              value: website_backend2
+            - name: DB_HOST
+              value: mysql.default.svc.cluster.local
+            - name: DB_DATABASE
+              value: verseghy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-svc
+  namespace: testing
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: backend
+      protocol: TCP
+      port: 80
+      targetPort: 3000
