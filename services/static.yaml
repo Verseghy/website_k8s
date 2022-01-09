@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: static
+    spec:
+      containers:
+        - name: app
+          image: verseghy/website_static
+          ports:
+            - containerPort: 80
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-svc
+spec:
+  selector:
+    app: static
+  ports:
+    - name: static
+      protocol: TCP
+      port: 80
+      targetPort: 80

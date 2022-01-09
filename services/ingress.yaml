@@ -6,6 +6,7 @@ metadata:
     acme.cert-manager.io/http01-edit-in-place: "true"
     kubernetes.io/ingress.class: "public"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
     - host: test.verseghy-gimnazium.net
@@ -18,6 +19,16 @@ spec:
                 name: frontend-ssr-svc
                 port:
                   number: 80
+    - host: test.verseghy-gimnazium.net
+      http:
+        paths:
+            - path: /(docs|images)/
+              pathType: Prefix
+              backend:
+                service:
+                  name: static-svc
+                  port:
+                    number: 80
     - host: backend.test.verseghy-gimnazium.net
       http:
         paths:
