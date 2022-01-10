@@ -52,6 +52,12 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: mysql-root-password
+            - name: BACKPACK_LICENSE
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backpack-license
+
           volumeMounts:
             - mountPath: /var/www/storage
               name: backend-persistent-storage

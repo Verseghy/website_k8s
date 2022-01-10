@@ -9,7 +9,7 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
-    - host: test.verseghy-gimnazium.net
+    - host: verseghy-gimnazium.net
       http:
         paths:
           - path: /
@@ -19,7 +19,7 @@ spec:
                 name: frontend-ssr-svc
                 port:
                   number: 80
-    - host: test.verseghy-gimnazium.net
+    - host: verseghy-gimnazium.net
       http:
         paths:
             - path: /(docs|images)/
@@ -29,7 +29,7 @@ spec:
                   name: static-svc
                   port:
                     number: 80
-    - host: backend.test.verseghy-gimnazium.net
+    - host: backend.verseghy-gimnazium.net
       http:
         paths:
           - path: /
@@ -41,6 +41,6 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - test.verseghy-gimnazium.net
-        - backend.test.verseghy-gimnazium.net
-      secretName: test-verseghy-gimnazium-net-tls
+        - verseghy-gimnazium.net
+        - backend.verseghy-gimnazium.net
+      secretName: verseghy-gimnazium-net-tls
