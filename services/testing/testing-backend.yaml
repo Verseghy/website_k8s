@@ -24,6 +24,21 @@ spec:
           ports:
             - containerPort: 3000
           imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 3000
+            initialDelaySeconds: 300
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 3000
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          resources:
+            limits:
+              memory: 128Mi
           env:
             - name: DB_PASSWORD
               valueFrom:
