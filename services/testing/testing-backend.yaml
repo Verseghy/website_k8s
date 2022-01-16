@@ -4,7 +4,7 @@ metadata:
   name: backend
   namespace: testing
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: backend
