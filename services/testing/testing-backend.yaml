@@ -51,6 +51,8 @@ spec:
               value: mysql.default.svc.cluster.local
             - name: DB_DATABASE
               value: verseghy
+            - name: REDIS_URL
+              value: redis://redis.default.svc.cluster.local
 ---
 apiVersion: v1
 kind: Service
