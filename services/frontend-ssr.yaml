@@ -18,6 +18,9 @@ spec:
           ports:
             - containerPort: 4000
           imagePullPolicy: Always
+          resources:
+            limits:
+              memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
