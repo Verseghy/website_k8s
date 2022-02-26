@@ -40,8 +40,19 @@ spec:
                 name: backend-svc
                 port:
                   number: 80
+    - host: backend2.verseghy-gimnazium.net
+      http:
+        paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: backend2
+                  port:
+                    number: 80
   tls:
     - hosts:
         - verseghy-gimnazium.net
         - backend.verseghy-gimnazium.net
+        - backend2.verseghy-gimnazium.net
       secretName: verseghy-gimnazium-net-tls

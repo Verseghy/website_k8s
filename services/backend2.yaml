@@ -1,13 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
-  namespace: testing
+  name: backend2
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: backend
+      app: backend2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -16,7 +15,7 @@ spec:
   template:
     metadata:
       labels:
-        app: backend
+        app: backend2
     spec:
       containers:
         - name: app
@@ -57,13 +56,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-svc
-  namespace: testing
+  name: backend2
 spec:
   selector:
-    app: backend
+    app: backend2
   ports:
-    - name: backend
+    - name: backend2
       protocol: TCP
       port: 80
       targetPort: 3000
