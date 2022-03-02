@@ -30,6 +30,16 @@ spec:
                   name: static-svc
                   port:
                     number: 80
+    - host: verseghy-gimnazium.net
+      http:
+        paths:
+            - path: /storage/
+              pathType: Prefix
+              backend:
+                service:
+                  name: backend-svc
+                  port:
+                    number: 80
     - host: backend.verseghy-gimnazium.net
       http:
         paths:
