@@ -53,7 +53,7 @@ spec:
     - host: backend2.verseghy-gimnazium.net
       http:
         paths:
-            - path: /
+            - path: /graphql
               pathType: Prefix
               backend:
                 service:
