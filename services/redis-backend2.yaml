@@ -1,34 +1,34 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: redis-config
+  name: redis-backend2
 data:
   redis-config: ""
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis
+  name: redis-backend2
 spec:
   ports:
     - port: 6379
   selector:
-    app: redis
+    app: redis-backend2
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: redis
+  name: redis-backend2
 spec:
   selector:
     matchLabels:
-      app: redis
+      app: redis-backend2
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: redis
+        app: redis-backend2
     spec:
       containers:
         - image: redis:6.2-alpine
@@ -55,7 +55,7 @@ spec:
           emptyDir: { }
         - name: config
           configMap:
-            name: redis-config
+            name: redis-backend2
             items:
               - key: redis-config
                 path: redis.conf
