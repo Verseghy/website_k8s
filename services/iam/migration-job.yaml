@@ -1,0 +1,23 @@
+uginsapiVersion: batch/v1
+kind: Job
+metadata:
+  name: iam-migrations
+  namespace: iam
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      containers:
+        - name: iam-migrations
+          image: verseghy/iam-migration:latest
+          imagePullPolicy: Always
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql
+                  key: mysql-password
+            - name: DATABASE_URL
+              value: mysql://iam:$(DB_PASSWORD)@mysql.default.svc.cluster.local/iam
+      restartPolicy: OnFailure
+  backoffLimit: 4
