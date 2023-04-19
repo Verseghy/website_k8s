@@ -1,1 +1,1 @@
-microk8s enable dns ingress storage rbac metrics
+microk8s enable dns ingress hostpath-storage rbac metrics
