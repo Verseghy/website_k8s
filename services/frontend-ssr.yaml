@@ -18,6 +18,18 @@ spec:
           ports:
             - containerPort: 4000
           imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 4000
+            initialDelaySeconds: 300
+            failureThreshold: 5
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 4000
+            timeoutSeconds: 15
           resources:
             limits:
               memory: 512Mi
