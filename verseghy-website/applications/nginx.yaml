@@ -1,0 +1,13 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: verseghy-website-nginx
+spec:
+  project: default
+  source:
+    path: examples/helloWorld
+    repoURL: 'https://github.com/kubernetes-sigs/kustomize'
+    targetRevision: HEAD
+  destination:
+    name: verseghy-microshift
+    namespace: verseghy

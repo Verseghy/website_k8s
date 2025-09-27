@@ -1,0 +1,12 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: verseghy-website
+spec:
+  project: default
+  source:
+    path: verseghy-website/applications
+    repoURL: https://github.com/Verseghy/website_k8s
+  destination:
+    name: in-cluster
+    namespace: verseghy
