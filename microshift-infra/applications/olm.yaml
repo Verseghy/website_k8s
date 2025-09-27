@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: microshift-infra-olm
+spec:
+  project: default
+  source:
+    path: microshift-infra/olm
+    repoURL: 'https://github.com/Verseghy/website_k8s'
+    targetRevision: HEAD
+  destination:
+    name: verseghy-microshift
+    namespace: verseghy
+  syncPolicy:
+    automated: {}

@@ -1,0 +1,14 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: microshift-infra
+spec:
+  project: default
+  source:
+    path: microshift-infra/applications
+    repoURL: https://github.com/Verseghy/website_k8s
+  destination:
+    name: in-cluster
+    namespace: verseghy
+  syncPolicy:
+    automated: {}
