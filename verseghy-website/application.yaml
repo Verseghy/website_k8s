@@ -10,3 +10,5 @@ spec:
   destination:
     name: in-cluster
     namespace: verseghy
+  syncPolicy:
+    automated: {}

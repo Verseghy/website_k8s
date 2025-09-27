@@ -11,3 +11,5 @@ spec:
   destination:
     name: verseghy-microshift
     namespace: verseghy
+  syncPolicy:
+    automated: {}
