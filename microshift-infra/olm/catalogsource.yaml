@@ -6,9 +6,6 @@ metadata:
 spec:
   displayName: Red Hat Operators
   grpcPodConfig:
-    extractContent:
-      cacheDir: /tmp/cache
-      catalogDir: /configs
     memoryTarget: 30Mi
     nodeSelector:
       kubernetes.io/os: linux
