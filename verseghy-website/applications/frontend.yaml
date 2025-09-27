@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: verseghy-website-nginx
+  name: verseghy-website-frontend
 spec:
   project: default
   source:
-    path: examples/helloWorld
-    repoURL: 'https://github.com/kubernetes-sigs/kustomize'
+    path: verseghy-website/frontend
+    repoURL: 'https://github.com/Verseghy/website_k8s'
     targetRevision: HEAD
   destination:
     name: verseghy-microshift
