@@ -7,6 +7,9 @@ spec:
   sourceType: grpc
   image: 'registry.redhat.io/redhat/redhat-operator-index:v4.19'
   grpcPodConfig:
+    extractContent:
+      cacheDir: /tmp/cache
+      catalogDir: /configs
     securityContextConfig: restricted
   updateStrategy:
     registryPoll:
