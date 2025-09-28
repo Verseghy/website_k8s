@@ -1,18 +1,18 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: microshift-infra-olm
+  name: microshift-infra-eso-operator
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    path: microshift-infra/olm
-    repoURL: 'https://github.com/Verseghy/website_k8s'
-    targetRevision: HEAD
+    chart: external-secrets
+    repoURL: external-secrets/external-secrets
+    targetRevision: 0.20.1
   destination:
     name: verseghy-microshift
-    namespace: verseghy
+    namespace: external-secrets
   syncPolicy:
     automated: {}
     syncOptions:
