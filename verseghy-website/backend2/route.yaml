@@ -1,7 +1,7 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: frontend
+  name: backend2
 spec:
   host: backend2.microshift.verseghy-gimnazium.net
   path: '/graphql'

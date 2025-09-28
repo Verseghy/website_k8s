@@ -1,7 +1,7 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: frontend
+  name: backend
 spec:
   host: backend.microshift.verseghy-gimnazium.net
   to:
