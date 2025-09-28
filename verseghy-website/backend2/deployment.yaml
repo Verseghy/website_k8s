@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend2
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: backend2
+    spec:
+      containers:
+        - name: app
+          image: verseghy/website_backend2
+          ports:
+            - containerPort: 3000
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 3000
+            initialDelaySeconds: 300
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 3000
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          resources:
+            limits:
+              memory: 128Mi
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: mysql-website_backend2-password
+            - name: DATABASE_URL
+              value: mysql://website_backend2:$(DB_PASSWORD)@mysql.default.svc.cluster.local/verseghy
+            - name: REDIS_URL
+              value: redis://redis-backend2.default.svc.cluster.local

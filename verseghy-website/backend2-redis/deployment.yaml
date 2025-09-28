@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-backend2
+spec:
+  selector:
+    matchLabels:
+      app: redis-backend2
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: redis-backend2
+    spec:
+      containers:
+        - image: redis:6.2-alpine
+          name: redis
+          command:
+            - redis-server
+            - "/redis-master/redis.conf"
+          ports:
+            - containerPort: 6379
+              name: redis
+          env:
+            - name: MASTER
+              value: "true"
+          volumeMounts:
+            - mountPath: /redis-master-data
+              name: data
+            - mountPath: /redis-master
+              name: config
+          resources:
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: data
+          emptyDir: { }
+        - name: config
+          configMap:
+            name: redis-backend2
+            items:
+              - key: redis-config
+                path: redis.conf

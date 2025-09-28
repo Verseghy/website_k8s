@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: app
+          image: verseghy/website_backend
+          ports:
+            - containerPort: 80
+          imagePullPolicy: Always
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: app-key
+            - name: DB_CONNECTION
+              value: mysql
+            - name: DB_HOST
+              value: mysql
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              value: verseghy
+            - name: DB_USERNAME
+              value: root
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: mysql-root-password
+            - name: BACKPACK_LICENSE
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backpack-license
+
+          volumeMounts:
+            - mountPath: /var/www/storage
+              name: backend-persistent-storage
+      volumes:
+        - name: backend-persistent-storage
+          persistentVolumeClaim:
+            claimName: backend-pv-claim

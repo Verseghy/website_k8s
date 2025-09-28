@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: frontend
+spec:
+  host: verseghy-gimnazium.net
+  path: '/storage'
+  to:
+    kind: Service
+    name: backend-svc
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
