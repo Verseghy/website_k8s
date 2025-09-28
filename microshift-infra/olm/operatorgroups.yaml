@@ -6,10 +6,10 @@ metadata:
 spec:
   targetNamespaces:
     - cert-manager-operator
----
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: openshift-external-secrets-operator
-  namespace: external-secrets-operator
-spec: {}
+# ---
+# apiVersion: operators.coreos.com/v1
+# kind: OperatorGroup
+# metadata:
+#   name: openshift-external-secrets-operator
+#   namespace: external-secrets-operator
+# spec: {}
