@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: verseghy-website-frontend
   finalizers:
-    - resources-finalizer.argocd.argoproj.io/
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
