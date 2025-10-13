@@ -17,7 +17,7 @@ spec:
           image: verseghy/website_frontend
           ports:
             - containerPort: 4000
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
               path: /

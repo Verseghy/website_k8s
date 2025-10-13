@@ -22,7 +22,7 @@ spec:
           image: verseghy/website_backend2
           ports:
             - containerPort: 3000
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
               path: /liveness

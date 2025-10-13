@@ -19,4 +19,4 @@ spec:
           image: verseghy/website_static
           ports:
             - containerPort: 80
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
