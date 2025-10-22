@@ -24,6 +24,8 @@ spec:
               value: mysql
             - name: PMA_PORT
               value: "3306"
+            - name: APACHE_PORT
+              value: 8080
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
