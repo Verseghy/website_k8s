@@ -20,3 +20,9 @@ spec:
           ports:
             - containerPort: 80
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: cache
+              mountPath: /var/cache/
+      volumes:
+        - name: cache
+          emptyDir: {}
