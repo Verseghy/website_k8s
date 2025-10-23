@@ -45,6 +45,6 @@ spec:
                   name: backend-secrets
                   key: mysql-website_backend2-password
             - name: DATABASE_URL
-              value: mysql://website_backend2:$(DB_PASSWORD)@mysql.default.svc.cluster.local/verseghy
+              value: mysql://website_backend2:$(DB_PASSWORD)@mysql.verseghy.svc.cluster.local/verseghy
             - name: REDIS_URL
-              value: redis://redis-backend2.default.svc.cluster.local
+              value: redis://redis-backend2.verseghy.svc.cluster.local
