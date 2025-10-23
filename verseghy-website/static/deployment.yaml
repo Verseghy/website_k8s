@@ -22,7 +22,7 @@ spec:
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: cache
-              mountPath: /var/cache/
+              mountPath: /var/cache/nginx
       volumes:
         - name: cache
           emptyDir: {}
