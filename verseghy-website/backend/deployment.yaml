@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app: backend
+      annotations:
+        openshift.io/required-scc: anyuid
     spec:
       containers:
         - name: app
