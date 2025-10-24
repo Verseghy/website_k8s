@@ -14,6 +14,7 @@ spec:
       labels:
         app: static
     spec:
+      serviceAccount: anyuid
       containers:
         - name: app
           image: verseghy/website_static
