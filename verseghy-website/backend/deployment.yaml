@@ -17,6 +17,7 @@ spec:
         openshift.io/required-scc: anyuid
     spec:
       serviceAccount: anyuid
+      hostUsers: false
       containers:
         - name: app
           image: verseghy/website_backend
