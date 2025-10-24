@@ -53,11 +53,7 @@ spec:
           volumeMounts:
             - mountPath: /var/www/storage
               name: backend-persistent-storage
-            - mountPath: /var/www/bootstrap/cache
-              name: cache
       volumes:
         - name: backend-persistent-storage
           persistentVolumeClaim:
             claimName: backend-pv-claim
-        - name: cache
-          emptyDir: {}
