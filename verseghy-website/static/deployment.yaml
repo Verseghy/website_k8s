@@ -15,6 +15,7 @@ spec:
         app: static
     spec:
       serviceAccount: anyuid
+      hostUsers: false
       containers:
         - name: app
           image: verseghy/website_static
