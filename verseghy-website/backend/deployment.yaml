@@ -20,7 +20,7 @@ spec:
       hostUsers: false
       containers:
         - name: app
-          image: verseghy/website_backend
+          image: ghcr.io/verseghy/website_backend:e53fd921d334285651b0634077db260f55ec0563
           ports:
             - containerPort: 80
           imagePullPolicy: IfNotPresent
