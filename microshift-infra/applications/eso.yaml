@@ -9,7 +9,7 @@ spec:
   source:
     chart: external-secrets
     repoURL: https://charts.external-secrets.io
-    targetRevision: 0.20.1
+    targetRevision: 0.20.4
   destination:
     name: verseghy-microshift
     namespace: external-secrets
