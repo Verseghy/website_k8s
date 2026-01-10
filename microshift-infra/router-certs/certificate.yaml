@@ -11,6 +11,7 @@ spec:
   privateKey:
     algorithm: ECDSA
     size: 256
+    rotationPolicy: Always
   dnsNames:
     - "*.microshift.verseghy-gimnazium.net"
     - "verseghy-gimnazium.net"
