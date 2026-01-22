@@ -10,5 +10,8 @@ spec:
   strategy:
     name: buildah
     kind: ClusterBuildStrategy
+  paramValues:
+    - name: dockerfile
+      value: Containerfile
   output:
     image: image-registry.openshift-image-registry.svc:5000/verseghy/website_backend2
