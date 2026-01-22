@@ -1,0 +1,14 @@
+apiVersion: shipwright.io/v1beta1
+kind: Build
+metadata:
+  name: backend2
+spec:
+  source:
+    type: Git
+    git:
+      url: https://github.com/Verseghy/website_backend2
+  strategy:
+    name: buildah
+    kind: ClusterBuildStrategy
+  output:
+    image: image-registry.openshift-image-registry.svc:5000/verseghy/website_backend2
