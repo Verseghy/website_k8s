@@ -1,0 +1,15 @@
+apiVersion: shipwright.io/v1beta1
+kind: Build
+metadata:
+  name: frontend
+spec:
+  source:
+    type: Git
+    git:
+      url: https://github.com/Verseghy/website_frontend
+  strategy:
+    name: buildah
+    kind: ClusterBuildStrategy
+  output:
+    image: ghcr.io/verseghy/website_frontend
+    pushSecret: ghcr-pull-secret
