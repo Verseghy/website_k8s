@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/verseghy/website_backend2:54e84025d0531c2b16554599bf5d7c635907794f
+          image: ghcr.io/verseghy/website_backend2:09fd686ffa3f31a7594d347f4dee15183daba8cc
           ports:
             - containerPort: 3000
           imagePullPolicy: IfNotPresent
@@ -48,3 +48,5 @@ spec:
               value: mysql://website_backend2:$(DB_PASSWORD)@mysql.verseghy.svc.cluster.local/verseghy
             - name: REDIS_URL
               value: redis://redis-backend2.verseghy.svc.cluster.local
+            - name: STORAGE_BASE_URL
+              value: https://backend.microshift.verseghy-gimnazium.net/storage
