@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/verseghy/website_backend2:55326f4e183be65d2a40d0c3e25d43e8a82a5962
+          image: ghcr.io/verseghy/website_backend2:54e84025d0531c2b16554599bf5d7c635907794f
           ports:
             - containerPort: 3000
           imagePullPolicy: IfNotPresent
