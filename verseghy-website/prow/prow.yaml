@@ -455,40 +455,38 @@ spec:
     - port: 80
       targetPort: 8888
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: route.openshift.io/v1
+kind: Route
 metadata:
   namespace: verseghy
-  name: prow
-  annotations:
-    # Change this to your issuer when using cert-manager. Does
-    # nothing when not using cert-manager.
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+  name: prow-deck
 spec:
-  defaultBackend:
-    # specify the default backend for `ingress-gce` (https://cloud.google.com/kubernetes-engine/docs/concepts/ingress#default_backend)
-    service:
-      name: deck
-      port:
-        number: 80
-  rules:
-    - host: prow.apps.okd4.home.zoltanszepesi.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: deck
-                port:
-                  number: 80
-          - path: /hook
-            pathType: Prefix
-            backend:
-              service:
-                name: hook
-                port:
-                  number: 8888
+  host: prow.apps.okd4.home.zoltanszepesi.com
+  to:
+    kind: Service
+    name: deck
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: reencrypt
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  namespace: verseghy
+  name: prow-hook
+spec:
+  host: prow.apps.okd4.home.zoltanszepesi.com
+  path: /hook
+  to:
+    kind: Service
+    name: hook
+    weight: 100
+  port:
+    targetPort: 8888
+  tls:
+    termination: reencrypt
 ---
 apiVersion: apps/v1
 kind: Deployment
