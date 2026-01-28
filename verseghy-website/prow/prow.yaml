@@ -9,6 +9,9 @@ metadata:
   name: plugins
 data:
   plugins.yaml: |
+    blunderbuss:
+      request_count: 1
+      use_status_availability: true
     plugins:
       Verseghy:
         plugins:
