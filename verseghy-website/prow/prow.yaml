@@ -1157,7 +1157,7 @@ spec:
             claimName: minio
       initContainers:
         - name: bucket-creator
-          image: alpine
+          image: public.ecr.aws/docker/library/alpine:latest
           command:
             - mkdir
             - -p
