@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: verseghy-website-prow
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    path: verseghy-website/prow
+    repoURL: 'https://github.com/Verseghy/website_k8s'
+    targetRevision: HEAD
+  destination:
+    name: in-cluster
+    namespace: verseghy
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
