@@ -10,7 +10,7 @@ metadata:
 data:
   plugins.yaml: |
     plugins:
-      $GITHUB_ORG:
+      Verseghy:
         plugins:
         - approve
         - assign
@@ -81,7 +81,7 @@ data:
           github_api_endpoints:
             - http://ghproxy
             - https://api.github.com
-          github_app_id: "$GITHUB_APP_ID"
+          github_app_id: "2748019"
           github_app_private_key_secret:
             name: github-token
             key: cert
@@ -103,7 +103,7 @@ data:
         - do-not-merge/work-in-progress
         - do-not-merge/invalid-owners-file
         orgs:
-        - $GITHUB_ORG
+        - Verseghy
 
     decorate_all_jobs: true
     periodics:
