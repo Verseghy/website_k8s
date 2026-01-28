@@ -37,10 +37,6 @@ data:
     prowjob_namespace: verseghy
     pod_namespace: verseghy
 
-    in_repo_config:
-      enabled:
-        "*": true
-
     deck:
      spyglass:
        gcs_browser_prefix: 'https://s3.console.aws.amazon.com/s3/buckets/'
@@ -93,6 +89,8 @@ data:
             sidecar: us-docker.pkg.dev/k8s-infra-prow/images/sidecar:v20260128-95b2a3412
 
     tide:
+      merge_method:
+        Verseghy: squash
       queries:
       - labels:
         - lgtm
