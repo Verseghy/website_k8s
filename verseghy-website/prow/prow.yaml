@@ -469,7 +469,7 @@ spec:
   port:
     targetPort: 8080
   tls:
-    termination: reencrypt
+    termination: edge
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -486,7 +486,7 @@ spec:
   port:
     targetPort: 8888
   tls:
-    termination: reencrypt
+    termination: edge
 ---
 apiVersion: apps/v1
 kind: Deployment
