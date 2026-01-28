@@ -35,7 +35,7 @@ metadata:
 data:
   config.yaml: |
     prowjob_namespace: verseghy
-    pod_namespace: test-pods
+    pod_namespace: verseghy
 
     in_repo_config:
       enabled:
@@ -556,11 +556,6 @@ spec:
           secret:
             secretName: s3-credentials
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: test-pods
----
 kind: ServiceAccount
 apiVersion: v1
 metadata:
@@ -580,20 +575,6 @@ subjects:
   - kind: ServiceAccount
     name: "deck"
 ---
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: test-pods
-  name: "deck"
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: "deck"
-subjects:
-  - kind: ServiceAccount
-    name: "deck"
-    namespace: verseghy
----
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -608,17 +589,6 @@ rules:
       - get
       - list
       - watch
-      # Required when deck runs with `--rerun-creates-job=true`
-      # **Warning:** Only use this for non-public deck instances, this allows
-      # anyone with access to your Deck instance to create new Prowjobs
-      # - create
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: test-pods
-  name: "deck"
-rules:
   - apiGroups:
       - ""
     resources:
@@ -712,13 +682,6 @@ rules:
       - events
     verbs:
       - create
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: test-pods
-  name: "sinker"
-rules:
   - apiGroups:
       - ""
     resources:
@@ -742,20 +705,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: "sinker"
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: test-pods
-  name: "sinker"
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: "sinker"
-subjects:
-  - kind: ServiceAccount
-    name: "sinker"
-    namespace: verseghy
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -1041,13 +990,6 @@ rules:
       - events
     verbs:
       - create
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: test-pods
-  name: prow-controller-manager
-rules:
   - apiGroups:
       - ""
     resources:
@@ -1072,20 +1014,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: prow-controller-manager
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: test-pods
-  name: prow-controller-manager
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: prow-controller-manager
-subjects:
-  - kind: ServiceAccount
-    name: prow-controller-manager
-    namespace: verseghy
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -1167,13 +1095,6 @@ rules:
       - "watch"
       - "list"
       - "patch"
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: test-pods
-  name: crier
-rules:
   - apiGroups:
       - ""
     resources:
@@ -1201,21 +1122,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: crier
-    namespace: verseghy
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: crier
-  namespace: test-pods
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: crier
-subjects:
-  - kind: ServiceAccount
-    name: crier
-    namespace: verseghy
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
