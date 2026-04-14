@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: verseghy
+  name: branchprotector
+spec:
+  schedule: "0 3 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: branchprotector
+          restartPolicy: Never
+          containers:
+            - name: branchprotector
+              image: us-docker.pkg.dev/k8s-infra-prow/images/branchprotector:v20260414-6691f5aff
+              args:
+                - --config-path=/etc/config/config.yaml
+                - --github-endpoint=http://ghproxy
+                - --github-endpoint=https://api.github.com
+                - --github-app-id=$(GITHUB_APP_ID)
+                - --github-app-private-key-path=/etc/github/cert
+                - --confirm
+              env:
+                - name: GITHUB_APP_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: github-token
+                      key: appid
+              volumeMounts:
+                - name: github-token
+                  mountPath: /etc/github
+                  readOnly: true
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+          volumes:
+            - name: github-token
+              secret:
+                secretName: github-token
+            - name: config
+              configMap:
+                name: config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: verseghy
+  name: branchprotector
