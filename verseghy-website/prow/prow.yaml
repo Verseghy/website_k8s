@@ -86,10 +86,10 @@ data:
             key: cert
           s3_credentials_secret: s3-credentials
           utility_images:
-            clonerefs: us-docker.pkg.dev/k8s-infra-prow/images/clonerefs:v20260128-95b2a3412
-            entrypoint: us-docker.pkg.dev/k8s-infra-prow/images/entrypoint:v20260128-95b2a3412
-            initupload: us-docker.pkg.dev/k8s-infra-prow/images/initupload:v20260128-95b2a3412
-            sidecar: us-docker.pkg.dev/k8s-infra-prow/images/sidecar:v20260128-95b2a3412
+            clonerefs: us-docker.pkg.dev/k8s-infra-prow/images/clonerefs:v20260414-6691f5aff
+            entrypoint: us-docker.pkg.dev/k8s-infra-prow/images/entrypoint:v20260414-6691f5aff
+            initupload: us-docker.pkg.dev/k8s-infra-prow/images/initupload:v20260414-6691f5aff
+            sidecar: us-docker.pkg.dev/k8s-infra-prow/images/sidecar:v20260414-6691f5aff
 
     tide:
       pr_status_base_urls:
@@ -198,7 +198,7 @@ spec:
       terminationGracePeriodSeconds: 180
       containers:
         - name: hook
-          image: us-docker.pkg.dev/k8s-infra-prow/images/hook:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/hook:v20260414-6691f5aff
           imagePullPolicy: Always
           args:
             - --dry-run=false
@@ -287,7 +287,7 @@ spec:
       serviceAccountName: "sinker"
       containers:
         - name: sinker
-          image: us-docker.pkg.dev/k8s-infra-prow/images/sinker:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/sinker:v20260414-6691f5aff
           args:
             - --config-path=/etc/config/config.yaml
             - --dry-run=false
@@ -326,7 +326,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: deck
-          image: us-docker.pkg.dev/k8s-infra-prow/images/deck:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/deck:v20260414-6691f5aff
           args:
             - --config-path=/etc/config/config.yaml
             - --plugin-config=/etc/plugins/plugins.yaml
@@ -438,7 +438,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: horologium
-          image: us-docker.pkg.dev/k8s-infra-prow/images/horologium:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/horologium:v20260414-6691f5aff
           args:
             - --dry-run=false
             - --config-path=/etc/config/config.yaml
@@ -473,7 +473,7 @@ spec:
       serviceAccountName: "tide"
       containers:
         - name: tide
-          image: us-docker.pkg.dev/k8s-infra-prow/images/tide:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/tide:v20260414-6691f5aff
           args:
             - --dry-run=false
             - --config-path=/etc/config/config.yaml
@@ -581,7 +581,7 @@ spec:
       terminationGracePeriodSeconds: 180
       containers:
         - name: statusreconciler
-          image: us-docker.pkg.dev/k8s-infra-prow/images/status-reconciler:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/status-reconciler:v20260414-6691f5aff
           args:
             - --dry-run=false
             - --continue-on-error=true
@@ -872,7 +872,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: branchprotector
-              image: us-docker.pkg.dev/k8s-infra-prow/images/branchprotector:v20260128-95b2a3412
+              image: us-docker.pkg.dev/k8s-infra-prow/images/branchprotector:v20260414-6691f5aff
               args:
                 - --config-path=/etc/config/config.yaml
                 - --github-endpoint=http://ghproxy
@@ -975,7 +975,7 @@ spec:
     spec:
       containers:
         - name: ghproxy
-          image: us-docker.pkg.dev/k8s-infra-prow/images/ghproxy:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/ghproxy:v20260414-6691f5aff
           args:
             - --cache-dir=/cache
             - --cache-sizeGB=99
@@ -1044,7 +1044,7 @@ spec:
                 secretKeyRef:
                   name: github-token
                   key: appid
-          image: us-docker.pkg.dev/k8s-infra-prow/images/prow-controller-manager:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/prow-controller-manager:v20260414-6691f5aff
           volumeMounts:
             - name: github-token
               mountPath: /etc/github
@@ -1159,7 +1159,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: crier
-          image: us-docker.pkg.dev/k8s-infra-prow/images/crier:v20260128-95b2a3412
+          image: us-docker.pkg.dev/k8s-infra-prow/images/crier:v20260414-6691f5aff
           args:
             - --blob-storage-workers=10
             - --config-path=/etc/config/config.yaml
