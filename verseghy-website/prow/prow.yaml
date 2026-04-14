@@ -339,6 +339,9 @@ spec:
             - --spyglass=true
             - --github-app-id=$(GITHUB_APP_ID)
             - --github-app-private-key-path=/etc/github/cert
+            - --oauth-url=/github-login
+            - --github-oauth-config-file=/etc/githuboauth/secret
+            - --cookie-secret=/etc/cookie/secret
           env:
             - name: GITHUB_APP_ID
               valueFrom:
@@ -360,6 +363,12 @@ spec:
               readOnly: true
             - name: s3-credentials
               mountPath: /etc/s3-credentials
+              readOnly: true
+            - name: github-oauth-config
+              mountPath: /etc/githuboauth
+              readOnly: true
+            - name: cookie-secret
+              mountPath: /etc/cookie
               readOnly: true
           livenessProbe:
             httpGet:
@@ -387,6 +396,12 @@ spec:
         - name: s3-credentials
           secret:
             secretName: s3-credentials
+        - name: github-oauth-config
+          secret:
+            secretName: github-oauth-config
+        - name: cookie-secret
+          secret:
+            secretName: cookie-secret
 ---
 apiVersion: v1
 kind: Service
