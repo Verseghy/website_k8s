@@ -862,7 +862,7 @@ metadata:
   namespace: verseghy
   name: branchprotector
 spec:
-  schedule: "0 * * * *"
+  schedule: "0 3 * * 0"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
@@ -908,6 +908,76 @@ kind: ServiceAccount
 metadata:
   namespace: verseghy
   name: branchprotector
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: verseghy
+  name: label-config
+data:
+  labels.yaml: |
+    default:
+      labels:
+      - name: lgtm
+        color: 0e8a16
+        description: Indicates that a PR is ready to be merged.
+      - name: approved
+        color: 0e8a16
+        description: Indicates a PR has been approved by an approver from all required OWNERS files.
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: verseghy
+  name: label-sync
+spec:
+  schedule: "15 3 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: label-sync
+          restartPolicy: Never
+          containers:
+            - name: label-sync
+              image: gcr.io/k8s-staging-test-infra/label_sync:v20240731-a5d9345e59
+              args:
+                - --config=/etc/config/labels.yaml
+                - --confirm=true
+                - --orgs=Verseghy
+                - --github-endpoint=http://ghproxy
+                - --github-endpoint=https://api.github.com
+                - --github-app-id=$(GITHUB_APP_ID)
+                - --github-app-private-key-path=/etc/github/cert
+              env:
+                - name: GITHUB_APP_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: github-token
+                      key: appid
+              volumeMounts:
+                - name: github-token
+                  mountPath: /etc/github
+                  readOnly: true
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+          volumes:
+            - name: github-token
+              secret:
+                secretName: github-token
+            - name: config
+              configMap:
+                name: label-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: verseghy
+  name: label-sync
 ---
 apiVersion: v1
 kind: ServiceAccount
