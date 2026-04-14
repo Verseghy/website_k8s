@@ -109,6 +109,60 @@ data:
         orgs:
         - Verseghy
 
+    branch-protection:
+      protect: true
+      enforce_admins: true
+      allow_force_pushes: false
+      allow_deletions: false
+      required_linear_history: true
+      required_conversation_resolution: true
+      required_status_checks:
+        strict: false
+      orgs:
+        Verseghy:
+          repos:
+            iam:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - Clippy
+                    - Build
+                    - Format
+                    - Test
+                    - "cargo-deny check (bans licenses sources)"
+            matverseny-backend:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - "cargo-deny check bans licenses sources"
+                    - "stable / clippy"
+                    - "ubuntu"
+                    - "fmt"
+            website_backend:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - "Travis CI - Branch"
+                    - "Travis CI - Pull Request"
+            website_backend2:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - Build
+                    - Clippy
+                    - Test
+                    - Format
+            website_frontend:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - "Lint, Build, Test, E2E (18, ubuntu-latest)"
+
     decorate_all_jobs: true
     periodics: []
 ---
@@ -778,6 +832,59 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: "tide"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: verseghy
+  name: branchprotector
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: branchprotector
+          restartPolicy: Never
+          containers:
+            - name: branchprotector
+              image: us-docker.pkg.dev/k8s-infra-prow/images/branchprotector:v20260128-95b2a3412
+              args:
+                - --config-path=/etc/config/config.yaml
+                - --github-endpoint=http://ghproxy
+                - --github-endpoint=https://api.github.com
+                - --github-app-id=$(GITHUB_APP_ID)
+                - --github-app-private-key-path=/etc/github/cert
+                - --confirm
+              env:
+                - name: GITHUB_APP_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: github-token
+                      key: appid
+              volumeMounts:
+                - name: github-token
+                  mountPath: /etc/github
+                  readOnly: true
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+          volumes:
+            - name: github-token
+              secret:
+                secretName: github-token
+            - name: config
+              configMap:
+                name: config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: verseghy
+  name: branchprotector
 ---
 apiVersion: v1
 kind: ServiceAccount
