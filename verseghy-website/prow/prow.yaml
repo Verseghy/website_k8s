@@ -110,6 +110,8 @@ data:
         - Verseghy
 
     branch-protection:
+      include:
+      - "^master$"
       protect: true
       enforce_admins: true
       allow_force_pushes: false
