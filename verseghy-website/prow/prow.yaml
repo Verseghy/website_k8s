@@ -92,6 +92,7 @@ data:
             sidecar: us-docker.pkg.dev/k8s-infra-prow/images/sidecar:v20260128-95b2a3412
 
     tide:
+      target_url: https://prow.apps.okd4.home.zoltanszepesi.com/tide
       merge_method:
         Verseghy: squash
       context_options:
