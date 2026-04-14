@@ -1,0 +1,191 @@
+# This file contains Kubernetes YAML files for the most important prow
+# components. Don't edit resources in this file. Instead, pull them out into
+# their own files.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: verseghy
+  name: plugins
+data:
+  plugins.yaml: |
+    blunderbuss:
+      request_count: 1
+      use_status_availability: true
+    plugins:
+      Verseghy:
+        plugins:
+        - approve
+        - assign
+        - blunderbuss
+        - cat
+        - dog
+        - help
+        - heart
+        - hold
+        - label
+        - lgtm
+        - trigger
+        - verify-owners
+        - wip
+        - yuks
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: verseghy
+  name: config
+data:
+  config.yaml: |
+    prowjob_namespace: verseghy
+    pod_namespace: verseghy
+
+    deck:
+     spyglass:
+       gcs_browser_prefix: 'https://s3.console.aws.amazon.com/s3/buckets/'
+       lenses:
+       - lens:
+           name: metadata
+         required_files:
+           - ^(?:started|finished)\.json$
+         optional_files:
+           - ^(?:podinfo|prowjob)\.json$
+       - lens:
+           config:
+           name: buildlog
+         required_files:
+         - build-log.txt
+       - lens:
+           name: junit
+         required_files:
+         - .*/junit.*\.xml
+       - lens:
+           name: podinfo
+         required_files:
+         - podinfo.json
+
+    plank:
+      job_url_prefix_config:
+        "*": https://prow.apps.okd4.home.zoltanszepesi.com/view/
+      report_templates:
+        '*': >-
+            [Full PR test history](https://prow.apps.okd4.home.zoltanszepesi.com/pr-history?org={{.Spec.Refs.Org}}&repo={{.Spec.Refs.Repo}}&pr={{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}).
+            [Your PR dashboard](https://prow.apps.okd4.home.zoltanszepesi.com/pr?query=is:pr+state:open+author:{{with
+            index .Spec.Refs.Pulls 0}}{{.Author}}{{end}}).
+      default_decoration_config_entries:
+      - config:
+          gcs_configuration:
+            bucket: s3://prow-logs
+            path_strategy: explicit
+          github_api_endpoints:
+            - http://ghproxy
+            - https://api.github.com
+          github_app_id: "2748019"
+          github_app_private_key_secret:
+            name: github-token
+            key: cert
+          s3_credentials_secret: s3-credentials
+          utility_images:
+            clonerefs: us-docker.pkg.dev/k8s-infra-prow/images/clonerefs:v20260414-6691f5aff
+            entrypoint: us-docker.pkg.dev/k8s-infra-prow/images/entrypoint:v20260414-6691f5aff
+            initupload: us-docker.pkg.dev/k8s-infra-prow/images/initupload:v20260414-6691f5aff
+            sidecar: us-docker.pkg.dev/k8s-infra-prow/images/sidecar:v20260414-6691f5aff
+
+    tide:
+      pr_status_base_urls:
+        "*": https://prow.apps.okd4.home.zoltanszepesi.com/pr
+      merge_method:
+        Verseghy: squash
+      context_options:
+        from-branch-protection: true
+        skip-unknown-contexts: true
+      queries:
+      - labels:
+        - lgtm
+        - approved
+        missingLabels:
+        - needs-rebase
+        - do-not-merge/hold
+        - do-not-merge/work-in-progress
+        - do-not-merge/invalid-owners-file
+        orgs:
+        - Verseghy
+
+    branch-protection:
+      include:
+      - "^master$"
+      protect: true
+      enforce_admins: true
+      allow_force_pushes: false
+      allow_deletions: false
+      required_linear_history: true
+      required_conversation_resolution: true
+      required_status_checks:
+        strict: false
+        contexts:
+        - tide
+      orgs:
+        Verseghy:
+          repos:
+            secure:
+              unmanaged: true
+            iam:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - Clippy
+                    - Build
+                    - Format
+                    - Test
+                    - "cargo-deny check (bans licenses sources)"
+            matverseny-backend:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - "cargo-deny check bans licenses sources"
+                    - "stable / clippy"
+                    - "ubuntu"
+                    - "fmt"
+            website_backend:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - "Travis CI - Branch"
+                    - "Travis CI - Pull Request"
+            website_backend2:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - Build
+                    - Clippy
+                    - Test
+                    - Format
+            website_frontend:
+              branches:
+                master:
+                  required_status_checks:
+                    contexts:
+                    - "Lint, Build, Test, E2E (18, ubuntu-latest)"
+
+    decorate_all_jobs: true
+    periodics: []
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: verseghy
+  name: label-config
+data:
+  labels.yaml: |
+    default:
+      labels:
+      - name: lgtm
+        color: 0e8a16
+        description: Indicates that a PR is ready to be merged.
+      - name: approved
+        color: 0e8a16
+        description: Indicates a PR has been approved by an approver from all required OWNERS files.

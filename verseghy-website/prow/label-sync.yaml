@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: verseghy
+  name: label-sync
+spec:
+  schedule: "15 3 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: label-sync
+          restartPolicy: Never
+          containers:
+            - name: label-sync
+              image: gcr.io/k8s-staging-test-infra/label_sync:v20260325-0ac3b4d79f
+              args:
+                - --config=/etc/config/labels.yaml
+                - --confirm=true
+                - --orgs=Verseghy
+                - --github-endpoint=http://ghproxy
+                - --github-endpoint=https://api.github.com
+                - --github-app-id=$(GITHUB_APP_ID)
+                - --github-app-private-key-path=/etc/github/cert
+              env:
+                - name: GITHUB_APP_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: github-token
+                      key: appid
+              volumeMounts:
+                - name: github-token
+                  mountPath: /etc/github
+                  readOnly: true
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+          volumes:
+            - name: github-token
+              secret:
+                secretName: github-token
+            - name: config
+              configMap:
+                name: label-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: verseghy
+  name: label-sync
