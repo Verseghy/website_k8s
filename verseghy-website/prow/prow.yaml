@@ -943,7 +943,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: label-sync
-              image: gcr.io/k8s-staging-test-infra/label_sync:v20240731-a5d9345e59
+              image: gcr.io/k8s-staging-test-infra/label_sync:v20260325-0ac3b4d79f
               args:
                 - --config=/etc/config/labels.yaml
                 - --confirm=true
