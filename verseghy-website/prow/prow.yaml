@@ -123,6 +123,8 @@ data:
       orgs:
         Verseghy:
           repos:
+            secure:
+              unmanaged: true
             iam:
               branches:
                 master:
