@@ -1,8 +1,9 @@
 # Automatic image builds (Pipelines-as-Code → Shipwright)
 
-The Shipwright `Build` objects in this directory (`frontend`, `backend2`) define
-*how* the images are built. This README documents how they are **triggered
-automatically on every push to `master`**, instead of being kicked off by hand.
+Pushes to `master` on the website source repos automatically build their
+container images with Shipwright, triggered by Pipelines-as-Code (PAC). This
+directory holds the PAC `Repository` bindings; the actual build recipe lives in
+each source repo (see below).
 
 ## How it works
 
@@ -11,40 +12,46 @@ git push master ──▶ GitHub App (PAC, app-id 1271459)
                         │  webhook
                         ▼
         pipelines-as-code-controller (openshift-pipelines)
-                        │  matches event URL to a Repository CR
+                        │  matches event URL to a Repository CR (this dir)
                         ▼
-        Repository CR (this dir) ── routes into namespace `verseghy`
-                        │  reads .tekton/push.yaml from the pushed commit
+        PipelineRun from <source-repo>/.tekton/push.yaml  (runs in `verseghy`)
+                        │  openshift-client task: oc create buildrun + oc wait
                         ▼
-        PipelineRun (build-frontend / build-backend2)
-                        │  oc create buildrun + poll
+        Shipwright BuildRun (self-contained, pinned to pushed SHA)
+                        │
                         ▼
-        Shipwright BuildRun ──▶ pushes ghcr.io/verseghy/<image>
+        ghcr.io/verseghy/<image>
 ```
 
-Two pieces are needed per repository:
+Two pieces per repository:
 
 | Piece | Lives in | File |
 |-------|----------|------|
-| `Repository` CR (opt-in + namespace routing) | this repo (GitOps) | `pac-repository-frontend.yaml`, `pac-repository-backend2.yaml` |
-| `PipelineRun` trigger (`.tekton/`) | the **source** repo's `master` branch | `website_frontend/.tekton/push.yaml`, `website_backend2/.tekton/push.yaml` |
+| PAC `Repository` (opt-in + namespace routing) | this repo (GitOps) | `pac-repository-frontend.yaml`, `pac-repository-backend2.yaml` |
+| `PipelineRun` trigger **and the full build recipe** | the **source** repo's `master` branch | `website_frontend/.tekton/push.yaml`, `website_backend2/.tekton/push.yaml` |
 
-The PipelineRun does not rebuild the image itself; it creates a Shipwright
-`BuildRun` for the existing `Build` and waits for it, so the result is reported
-back onto the commit as a GitHub check.
+## Why there is no `Build` CR here
 
-## Notes / caveats
+The `PipelineRun` creates a Shipwright `BuildRun` with an **embedded build spec**
+(`spec.build.spec`) rather than referencing a standalone `Build` by name. That
+makes each `.tekton/push.yaml` the single source of truth for how its image is
+built, and — crucially — lets it **pin `source.git.revision` to the exact pushed
+commit** for reproducible, per-commit builds. (A `BuildRun` that references a
+`Build` by *name* cannot override the revision; only an embedded spec can.)
 
-- **Revision:** the Shipwright `Build` pins no git revision, so a `BuildRun`
-  always builds current `master` HEAD. For a push event that is the triggering
-  commit; the SHA is recorded as a label (`pipelinesascode.tekton.dev/sha`) for
-  traceability. Rapid back-to-back pushes may both build the newer HEAD —
-  `concurrency_limit: 1` on the Repository serializes them.
-- **Auth:** uses the cluster-global PAC GitHub App; no per-repo secret needed.
-  The App must be **installed on each source repo** in the GitHub org for events
-  to flow.
-- **RBAC:** the PipelineRun runs as the `pipeline` ServiceAccount in `verseghy`,
-  which already has `create/get` on `buildruns.shipwright.io` via the
+Trade-offs of dropping the standalone `Build` CRs: there is no `oc get builds`
+entry and no apply-time build validation, and a manual one-off build now means
+crafting a full `BuildRun` (copy the `spec.build.spec` block from the repo's
+`.tekton/push.yaml`).
+
+## Notes
+
+- **Auth:** the cluster-global PAC GitHub App; no per-repo secret. The App must
+  be installed on each source repo.
+- **RBAC:** the `PipelineRun` runs as the `pipeline` ServiceAccount in `verseghy`,
+  which has `create/get` on `buildruns.shipwright.io` via the
   `openshift-pipelines-edit` (ClusterRole/edit) binding.
-- **PR builds (optional):** to also build on pull requests, add a
-  `.tekton/pull-request.yaml` with `on-event: "[pull_request]"`.
+- **Concurrency:** `concurrency_limit: 1` on each `Repository` serializes builds
+  so rapid pushes don't race.
+- **PR builds (optional):** add a `.tekton/pull-request.yaml` with
+  `on-event: "[pull_request]"` to also build on pull requests.
