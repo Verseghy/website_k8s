@@ -1,0 +1,20 @@
+# Pipelines-as-Code Repository binding for the website frontend.
+#
+# This CR opts the GitHub repository into PAC and routes its events into the
+# `verseghy` namespace. Authentication is handled by the cluster-global PAC
+# GitHub App (app-id 1271459 in openshift-pipelines/pipelines-as-code-secret),
+# so no per-repo provider secret is required here.
+#
+# When a `push` event for this repo arrives, PAC reads `.tekton/push.yaml` from
+# the pushed revision and runs it as a PipelineRun in this namespace. See that
+# file (in the website_frontend repo) for the actual build trigger logic.
+apiVersion: pipelinesascode.tekton.dev/v1alpha1
+kind: Repository
+metadata:
+  name: website-frontend
+  namespace: verseghy
+spec:
+  url: https://github.com/Verseghy/website_frontend
+  # Serialize PipelineRuns for this repo so two rapid master pushes don't kick
+  # off competing image builds; the latest queued run wins.
+  concurrency_limit: 1
