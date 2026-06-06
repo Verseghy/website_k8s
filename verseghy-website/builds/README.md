@@ -15,7 +15,7 @@ git push master ──▶ GitHub App (PAC, app-id 1271459)
                         │  matches event URL to a Repository CR (this dir)
                         ▼
         PipelineRun from <source-repo>/.tekton/push.yaml  (runs in `verseghy`)
-                        │  oc create buildrun + poll
+                        │  openshift-client task: oc create buildrun + oc wait
                         ▼
         Shipwright BuildRun (self-contained, pinned to pushed SHA)
                         │
