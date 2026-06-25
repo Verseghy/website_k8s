@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: verseghy
+  description: Verseghy Gimnazium online platform
+spec:
+  owner: group:verseghy
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: verseghy-website
+  description: Public website - frontend, backends, static assets, datastores
+spec:
+  owner: group:verseghy
+  domain: verseghy
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: verseghy-platform
+  description: Build and delivery plumbing - Prow CI, Argo CD Image Updater, External Secrets
+spec:
+  owner: group:verseghy
+  domain: verseghy

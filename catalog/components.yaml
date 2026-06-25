@@ -1,0 +1,103 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: website-frontend
+  title: Website Frontend
+  description: SSR public site at verseghy-gimnazium.net
+  annotations:
+    github.com/project-slug: Verseghy/website_frontend
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=frontend
+    janus-idp.io/tekton: website-frontend
+    backstage.io/kubernetes-namespace: verseghy
+    backstage.io/kubernetes-label-selector: 'pipelinesascode.tekton.dev/repository=website-frontend'
+    backstage.io/source-location: url:https://github.com/Verseghy/website_frontend/tree/master/
+    backstage.io/techdocs-ref: url:https://github.com/Verseghy/website_frontend/tree/master
+  tags:
+    - website
+    - ghcr
+  links:
+    - url: https://verseghy-gimnazium.net
+      title: Live site
+spec:
+  type: website
+  lifecycle: production
+  owner: group:verseghy
+  system: verseghy-website
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: website-backend
+  title: Website Backend
+  description: Laravel/Backpack admin and API, MySQL-backed with persistent storage
+  annotations:
+    github.com/project-slug: Verseghy/website_backend
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=backend
+    backstage.io/source-location: url:https://github.com/Verseghy/website_backend/tree/master/
+    backstage.io/techdocs-ref: url:https://github.com/Verseghy/website_backend/tree/master
+  tags:
+    - service
+    - laravel
+    - ghcr
+  links:
+    - url: https://backend.microshift.verseghy-gimnazium.net
+      title: Backend route
+spec:
+  type: service
+  lifecycle: production
+  owner: group:verseghy
+  system: verseghy-website
+  dependsOn:
+    - resource:mysql
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: website-backend2
+  title: Website Backend 2
+  description: Backend service (port 3000), MySQL + Redis backed, 3 replicas
+  annotations:
+    github.com/project-slug: Verseghy/website_backend2
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=backend2
+    janus-idp.io/tekton: website-backend2
+    backstage.io/kubernetes-namespace: verseghy
+    backstage.io/kubernetes-label-selector: 'pipelinesascode.tekton.dev/repository=website-backend2'
+    backstage.io/source-location: url:https://github.com/Verseghy/website_backend2/tree/master/
+    backstage.io/techdocs-ref: url:https://github.com/Verseghy/website_backend2/tree/master
+  tags:
+    - service
+    - ghcr
+  links:
+    - url: https://backend2.microshift.verseghy-gimnazium.net
+      title: Backend2 route
+spec:
+  type: service
+  lifecycle: production
+  owner: group:verseghy
+  system: verseghy-website
+  dependsOn:
+    - resource:mysql
+    - resource:backend2-redis
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: website-static
+  title: Website Static Assets
+  description: nginx serving /docs and /images under verseghy-gimnazium.net
+  annotations:
+    github.com/project-slug: Verseghy/website_static
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=static
+    backstage.io/source-location: url:https://github.com/Verseghy/website_static/tree/master/
+  tags:
+    - website
+    - nginx
+spec:
+  type: website
+  lifecycle: production
+  owner: group:verseghy
+  system: verseghy-website

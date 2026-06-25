@@ -2,6 +2,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: verseghy-website-backend
+  labels:
+    verseghy.net/component: backend
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

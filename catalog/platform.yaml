@@ -1,0 +1,38 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: prow
+  title: Prow CI
+  description: Prow control plane (deck, hook, tide, crier, sinker, horologium) for the Verseghy org
+  annotations:
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=prow
+  tags:
+    - ci
+    - prow
+  links:
+    - url: https://prow.apps.okd4.home.zoltanszepesi.com
+      title: Prow dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: group:verseghy
+  system: verseghy-platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: argocd-image-updater
+  title: Argo CD Image Updater
+  description: Auto-promotes container images into the GitOps repo via pull requests
+  annotations:
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=image-updater
+  tags:
+    - gitops
+    - automation
+spec:
+  type: service
+  lifecycle: production
+  owner: group:verseghy
+  system: verseghy-platform

@@ -1,15 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: verseghy-website-prow
-  labels:
-    verseghy.net/component: prow
+  name: verseghy-website-rhdh
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    path: verseghy-website/prow
+    path: verseghy-website/rhdh
     repoURL: 'https://github.com/Verseghy/website_k8s'
     targetRevision: HEAD
   destination:

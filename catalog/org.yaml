@@ -1,0 +1,27 @@
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: verseghy
+  description: Verseghy website maintainers
+spec:
+  type: team
+  children: []
+  members:
+    - TwoDCube
+    - smrtrfszm
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: TwoDCube
+spec:
+  memberOf:
+    - verseghy
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: smrtrfszm
+spec:
+  memberOf:
+    - verseghy

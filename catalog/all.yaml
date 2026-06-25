@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: verseghy
+  description: Root catalog for the Verseghy website platform
+spec:
+  type: url
+  targets:
+    - ./org.yaml
+    - ./systems.yaml
+    - ./resources.yaml
+    - ./components.yaml
+    - ./platform.yaml

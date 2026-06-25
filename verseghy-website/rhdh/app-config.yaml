@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-rhdh
+data:
+  app-config-rhdh.yaml: |
+    app:
+      title: Verseghy Developer Hub
+      baseUrl: https://rhdh.apps.okd4.home.zoltanszepesi.com
+    backend:
+      baseUrl: https://rhdh.apps.okd4.home.zoltanszepesi.com
+      cors:
+        origin: https://rhdh.apps.okd4.home.zoltanszepesi.com
+    integrations:
+      github:
+        - host: github.com
+          apps:
+            - appId: ${GITHUB_APP_ID}
+              clientId: ${GITHUB_APP_CLIENT_ID}
+              clientSecret: ${GITHUB_APP_CLIENT_SECRET}
+              privateKey: |
+                ${GITHUB_APP_PRIVATE_KEY}
+    auth:
+      environment: production
+      providers:
+        github:
+          production:
+            clientId: ${GITHUB_APP_CLIENT_ID}
+            clientSecret: ${GITHUB_APP_CLIENT_SECRET}
+            signIn:
+              resolvers:
+                - resolver: usernameMatchingUserEntityName
+    signInPage: github
+    catalog:
+      rules:
+        - allow: [Component, System, Domain, Resource, API, Location, Group, User]
+      locations:
+        - type: url
+          target: https://github.com/Verseghy/website_k8s/blob/master/catalog/all.yaml
+          rules:
+            - allow: [Component, System, Domain, Resource, API, Location, Group, User]
+    argocd:
+      appLocatorMethods:
+        - type: config
+          instances:
+            - name: verseghy
+              url: https://argocd-server-verseghy.apps.okd4.home.zoltanszepesi.com
+              token: ${apiToken}
+    kubernetes:
+      serviceLocatorMethod:
+        type: multiTenant
+      clusterLocatorMethods:
+        - type: config
+          clusters:
+            - name: hub
+              url: https://kubernetes.default.svc
+              authProvider: serviceAccount
+              skipTLSVerify: true
+              serviceAccountToken: ${token}
+      customResources:
+        - group: tekton.dev
+          apiVersion: v1
+          plural: pipelineruns
+        - group: tekton.dev
+          apiVersion: v1
+          plural: taskruns
+    techdocs:
+      builder: local
+      generator:
+        runIn: local
+      publisher:
+        type: local

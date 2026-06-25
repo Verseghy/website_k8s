@@ -1,0 +1,35 @@
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: mysql
+  description: MySQL 8.4 datastore for backend and backend2
+  annotations:
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=mysql
+spec:
+  type: database
+  owner: group:verseghy
+  system: verseghy-website
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: backend2-redis
+  description: Redis 6.2 cache for backend2
+  annotations:
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=backend2-redis
+spec:
+  type: cache
+  owner: group:verseghy
+  system: verseghy-website
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: onepassword-store
+  description: External Secrets store backed by 1Password (vault Server)
+spec:
+  type: secret-store
+  owner: group:verseghy
+  system: verseghy-platform
