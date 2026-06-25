@@ -14,9 +14,10 @@ metadata:
 type: kubernetes.io/service-account-token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: backstage-read-only
+  namespace: verseghy
 rules:
   - apiGroups:
       - ""
@@ -88,12 +89,13 @@ rules:
       - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: backstage-read-only
+  namespace: verseghy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: backstage-read-only
 subjects:
   - kind: ServiceAccount
