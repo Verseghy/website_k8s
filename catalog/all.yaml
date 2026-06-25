@@ -11,3 +11,4 @@ spec:
     - ./resources.yaml
     - ./components.yaml
     - ./platform.yaml
+    - ./apis.yaml

@@ -24,6 +24,8 @@ spec:
   lifecycle: production
   owner: group:verseghy
   system: verseghy-website
+  consumesApis:
+    - backend2-graphql
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Component
@@ -81,6 +83,8 @@ spec:
   dependsOn:
     - resource:mysql
     - resource:backend2-redis
+  providesApis:
+    - backend2-graphql
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Component

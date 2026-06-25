@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: backend2-graphql
+  title: Verseghy Website GraphQL API
+  description: Public GraphQL API served by website-backend2 (posts, authors, archive, canteen menus, colleagues)
+  tags:
+    - graphql
+  links:
+    - url: https://backend2.microshift.verseghy-gimnazium.net/graphql
+      title: Live GraphiQL explorer
+spec:
+  type: graphql
+  lifecycle: production
+  owner: group:verseghy
+  system: verseghy-website
+  definition:
+    $text: ./backend2-schema.graphql
