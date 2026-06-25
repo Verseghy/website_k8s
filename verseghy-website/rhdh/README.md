@@ -30,7 +30,7 @@ not the Helm `global.dynamic` wrapper).
 
 | Plugin | Package (preinstalled in the 1.9 image) |
 |--------|------------------------------------------|
-| Argo CD UI / backend | `backstage-community-plugin-redhat-argocd` / `-backend` |
+| Argo CD UI / backend | `backstage-community-plugin-argocd` / `-backend` (OCI artifacts) |
 | Kubernetes UI / backend | `backstage-plugin-kubernetes` / `backstage-plugin-kubernetes-backend-dynamic` |
 | Tekton CI | `backstage-community-plugin-tekton` |
 
