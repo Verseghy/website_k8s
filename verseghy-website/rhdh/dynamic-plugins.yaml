@@ -30,3 +30,20 @@ data:
                       if:
                         allOf:
                           - isTektonCIAvailable
+      - package: ./dynamic-plugins/dist/backstage-plugin-catalog-backend-module-github-org-dynamic
+        disabled: false
+        pluginConfig:
+          catalog:
+            providers:
+              githubOrg:
+                id: verseghy
+                githubUrl: https://github.com
+                orgs:
+                  - Verseghy
+                schedule:
+                  frequency:
+                    minutes: 60
+                  initialDelay:
+                    seconds: 15
+                  timeout:
+                    minutes: 15
