@@ -55,8 +55,9 @@ data:
             - name: hub
               url: https://kubernetes.default.svc
               authProvider: serviceAccount
-              skipTLSVerify: true
+              skipTLSVerify: false
               serviceAccountToken: ${token}
+              caFile: /opt/app-root/src/extra-certs/ca.crt
       customResources:
         - group: tekton.dev
           apiVersion: v1

@@ -9,6 +9,11 @@ spec:
       configMaps:
         - name: app-config-rhdh
     dynamicPluginsConfigMapName: dynamic-plugins-rhdh
+    extraFiles:
+      configMaps:
+        - name: kube-root-ca.crt
+          key: ca.crt
+          mountPath: /opt/app-root/src/extra-certs
     extraEnvs:
       secrets:
         - name: rhdh-secrets
