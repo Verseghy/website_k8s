@@ -18,4 +18,4 @@ spec:
           key: apiToken
     route:
       enabled: true
-      host: rhdh.apps.okd4.home.zoltanszepesi.com
+      host: rhdh-verseghy.apps.okd4.home.zoltanszepesi.com

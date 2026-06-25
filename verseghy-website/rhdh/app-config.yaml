@@ -6,11 +6,11 @@ data:
   app-config-rhdh.yaml: |
     app:
       title: Verseghy Developer Hub
-      baseUrl: https://rhdh.apps.okd4.home.zoltanszepesi.com
+      baseUrl: https://rhdh-verseghy.apps.okd4.home.zoltanszepesi.com
     backend:
-      baseUrl: https://rhdh.apps.okd4.home.zoltanszepesi.com
+      baseUrl: https://rhdh-verseghy.apps.okd4.home.zoltanszepesi.com
       cors:
-        origin: https://rhdh.apps.okd4.home.zoltanszepesi.com
+        origin: https://rhdh-verseghy.apps.okd4.home.zoltanszepesi.com
     integrations:
       github:
         - host: github.com

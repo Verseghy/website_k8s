@@ -4,7 +4,7 @@ Internal developer portal that catalogs and documents the Verseghy platform. Run
 the hub cluster (OKD, `apps.okd4.home.zoltanszepesi.com`) in the `verseghy` namespace,
 deployed by the RHDH Operator and managed by Argo CD.
 
-- URL: https://rhdh.apps.okd4.home.zoltanszepesi.com
+- URL: https://rhdh-verseghy.apps.okd4.home.zoltanszepesi.com
 - Operator CRD: `backstages.rhdh.redhat.com` (RHDH 1.9)
 - Catalog content: [`/catalog`](../../catalog)
 
