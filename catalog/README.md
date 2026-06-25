@@ -28,7 +28,7 @@ Group: verseghy  (owner of everything; members TwoDCube, smrtrfszm)
 | File | Entities |
 |------|----------|
 | `all.yaml` | `Location` listing the files below |
-| `org.yaml` | `Group` verseghy + `User`s (sign-in identities) |
+| `org.yaml` | `Group` verseghy (ownership). `User`s + team `Group`s are ingested from the Verseghy GitHub org by the github-org provider (`dynamic-plugins.yaml`); sign-in is restricted to those org members |
 | `systems.yaml` | `Domain` + the two `System`s |
 | `resources.yaml` | `mysql`, `backend2-redis`, `onepassword-store` |
 | `components.yaml` | the four website components |

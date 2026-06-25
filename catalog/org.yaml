@@ -9,19 +9,3 @@ spec:
   members:
     - TwoDCube
     - smrtrfszm
----
-apiVersion: backstage.io/v1alpha1
-kind: User
-metadata:
-  name: TwoDCube
-spec:
-  memberOf:
-    - verseghy
----
-apiVersion: backstage.io/v1alpha1
-kind: User
-metadata:
-  name: smrtrfszm
-spec:
-  memberOf:
-    - verseghy
