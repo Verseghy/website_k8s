@@ -15,6 +15,9 @@ spec:
           key: ca.crt
           mountPath: /opt/app-root/src/extra-certs
     extraEnvs:
+      envs:
+        - name: NODE_EXTRA_CA_CERTS
+          value: /opt/app-root/src/extra-certs/ca.crt
       secrets:
         - name: rhdh-secrets
         - name: rhdh-k8s-reader-token
