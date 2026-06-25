@@ -1,0 +1,67 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: verseghy-website
+  namespace: verseghy
+spec:
+  writeBackConfig:
+    method: "git:secret:verseghy/image-updater-git-creds"
+    gitConfig:
+      branch: master
+      writeBackTarget: kustomization
+      pullRequest:
+        github: {}
+  applicationRefs:
+    - namePattern: verseghy-website-frontend
+      images:
+        - alias: frontend
+          imageName: ghcr.io/verseghy/website_frontend
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/verseghy/website_frontend
+          commonUpdateSettings:
+            updateStrategy: newest-build
+            allowTags: 'regexp:^[0-9a-f]{40}$'
+            pullSecret: "pullsecret:verseghy/ghcr-pull-secret"
+    - namePattern: verseghy-website-backend
+      images:
+        - alias: backend
+          imageName: ghcr.io/verseghy/website_backend
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/verseghy/website_backend
+          commonUpdateSettings:
+            updateStrategy: newest-build
+            allowTags: 'regexp:^[0-9a-f]{40}$'
+            pullSecret: "pullsecret:verseghy/ghcr-pull-secret"
+    - namePattern: verseghy-website-backend2
+      images:
+        - alias: backend2
+          imageName: ghcr.io/verseghy/website_backend2
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/verseghy/website_backend2
+          commonUpdateSettings:
+            updateStrategy: newest-build
+            allowTags: 'regexp:^[0-9a-f]{40}$'
+            pullSecret: "pullsecret:verseghy/ghcr-pull-secret"
+    - namePattern: verseghy-website-mysql
+      images:
+        - alias: mysql
+          imageName: mysql
+          manifestTargets:
+            kustomize:
+              name: mysql
+          commonUpdateSettings:
+            updateStrategy: semver
+            allowTags: 'regexp:^8\.4\.[0-9]+$'
+    - namePattern: verseghy-website-backend2-redis
+      images:
+        - alias: redis
+          imageName: redis
+          manifestTargets:
+            kustomize:
+              name: redis
+          commonUpdateSettings:
+            updateStrategy: semver
+            allowTags: 'regexp:^6\.2\.[0-9]+-alpine$'

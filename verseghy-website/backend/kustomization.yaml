@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - persistentvolumeclaim.yaml
+  - route-storage.yaml
+  - route.yaml
+  - serviceaccount.yaml
+  - service.yaml
+images:
+  - name: ghcr.io/verseghy/website_backend
+    newTag: e53fd921d334285651b0634077db260f55ec0563
