@@ -47,3 +47,23 @@ data:
                     seconds: 15
                   timeout:
                     minutes: 15
+      - package: ./dynamic-plugins/dist/backstage-plugin-catalog-backend-module-github-dynamic
+        disabled: false
+        pluginConfig:
+          catalog:
+            providers:
+              github:
+                verseghy:
+                  organization: Verseghy
+                  catalogPath: /catalog-info.yaml
+                  filters:
+                    branch: master
+                    repository: 'website_.*'
+                  validateLocationsExist: true
+                  schedule:
+                    frequency:
+                      minutes: 30
+                    initialDelay:
+                      seconds: 15
+                    timeout:
+                      minutes: 3
