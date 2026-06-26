@@ -6,4 +6,5 @@ resources:
   - service.yaml
 images:
   - name: redis
-    newTag: 6.2.20-alpine
+    newTag: 6.2.22-alpine
+    newName: redis
