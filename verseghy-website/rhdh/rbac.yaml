@@ -29,6 +29,15 @@ rules:
       - limitranges
       - persistentvolumeclaims
       - replicationcontrollers
+      - resourcequotas
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
     verbs:
       - get
       - list
