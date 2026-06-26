@@ -6,4 +6,5 @@ resources:
   - service.yaml
 images:
   - name: mysql
-    newTag: 8.4.7
+    newTag: 8.4.10
+    newName: mysql
