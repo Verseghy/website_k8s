@@ -6,4 +6,5 @@ resources:
   - service.yaml
 images:
   - name: ghcr.io/verseghy/website_frontend
-    newTag: 724f30f70fec5bff7c1287f7dd7dc0b38def6a75
+    newTag: 7ed639c90e01d5df4ea13846a9b0ea965362cd99
+    newName: ghcr.io/verseghy/website_frontend
