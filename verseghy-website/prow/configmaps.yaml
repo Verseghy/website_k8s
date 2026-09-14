@@ -127,6 +127,8 @@ data:
       orgs:
         Verseghy:
           repos:
+            runbooks:
+              unmanaged: true
             secure:
               unmanaged: true
             iam:
