@@ -1,0 +1,351 @@
+# Namespaced copy of the operator-managed `buildah` ClusterBuildStrategy with one
+# difference: the build step runs on a RHEL 9 (UBI 9) buildah image instead of the
+# UBI 10 one.
+#
+# Why this exists: Builds for OpenShift 1.8.2 (installed 2026-09-30) switched the
+# cluster `buildah` strategy to registry.redhat.io/ubi10/buildah. RHEL 10 raised
+# its CPU baseline to x86-64-v3 (AVX2, BMI1/2, FMA, F16C, MOVBE), and the okd4
+# nodes are Sandy Bridge era Xeons without those extensions, so every build died
+# at container start with "Fatal glibc error: CPU does not support x86-64-v3"
+# (first seen on build-frontend-zwbdt, 2026-10-21). The operator reconciles its
+# own strategy, so patching it in place would be reverted; a BuildStrategy in the
+# verseghy namespace is ours to manage through GitOps instead.
+#
+# How to maintain: when the Builds operator is upgraded, diff this file's steps,
+# parameters and volumes against `oc get clusterbuildstrategy buildah -o yaml`
+# and carry over any script changes, keeping only the image line different. The
+# image is pinned by digest so a tag move cannot change what runs; bump it on
+# purpose with `oc image info registry.access.redhat.com/ubi9/buildah:latest`.
+# The pull policy is IfNotPresent so a cached image survives a registry outage
+# (the same failure mode that took down Prow's MinIO in October 2026).
+#
+# Consumers: website_frontend/.tekton/push.yaml and website_backend2/.tekton/push.yaml
+# reference this as {"name":"buildah-ubi9","kind":"BuildStrategy"}. Drop this file
+# again once the nodes are replaced with x86-64-v3 capable hardware.
+apiVersion: shipwright.io/v1beta1
+kind: BuildStrategy
+spec:
+  parameters:
+    - defaults: []
+      description: The values for the args in the Dockerfile. Values must be in the format KEY=VALUE.
+      name: build-args
+      type: array
+    - defaults: []
+      description: The registries that need to block pull access.
+      name: registries-block
+      type: array
+    - defaults: []
+      description: The fully-qualified name of insecure registries. An insecure registry is one that does not have a valid SSL certificate or only supports HTTP.
+      name: registries-insecure
+      type: array
+    - defaults:
+        - registry.redhat.io
+        - quay.io
+      description: The registries for searching short name images such as `golang:latest`.
+      name: registries-search
+      type: array
+    - default: ""
+      description: Image name used to replace the value in the last FROM instruction in the Dockerfile.
+      name: runtime-stage-from
+      type: string
+    - default: Dockerfile
+      description: The path to the Dockerfile to be used for building the image.
+      name: dockerfile
+      type: string
+    - default: vfs
+      description: The storage driver to use, such as 'overlay' or 'vfs'
+      name: storage-driver
+      type: string
+    - default: ""
+      description: Sets the target stage to be built.
+      name: target
+      type: string
+    - default: "false"
+      description: Do not use existing cached images for the container build. Build from the start with a new set of cached layers.
+      name: no-cache
+      type: string
+    - default: missing
+      description: 'Pull image policy. The value of --pull passed to buildah bud. Valid values: always, missing, never, newer.'
+      name: pull
+      type: string
+    - default: "false"
+      description: Squash all new layers into a single new layer. The value of --squash passed to buildah bud.
+      name: squash
+      type: string
+  securityContext:
+    runAsGroup: 0
+    runAsUser: 0
+  steps:
+    - args:
+        - -c
+        - |
+          set -euo pipefail
+
+          # Import additional trusted CA certificates supplied through the
+          # trusted-ca volume (e.g. a ConfigMap holding a PEM bundle) into the
+          # system trust store, so that image pulls and pushes trust endpoints
+          # signed by a custom/private CA. No-op when the volume is empty.
+          trustedCADir=/var/shipwright/trusted-ca
+          if [ -d "${trustedCADir}" ]; then
+            certs=$(find -L "${trustedCADir}" -maxdepth 1 -type f \( -name '*.crt' -o -name '*.pem' \) 2>/dev/null || true)
+            if [ -n "${certs}" ]; then
+              echo "[INFO] Importing trusted CA certificates from ${trustedCADir}"
+              while IFS= read -r cert; do
+                cp -L "${cert}" /etc/pki/ca-trust/source/anchors/
+              done <<< "${certs}"
+              update-ca-trust extract
+            fi
+          fi
+
+          # Parse parameters
+          context=
+          dockerfile=
+          image=
+          runtimeStageFrom=
+          pull="missing"
+          budArgs=()
+          inBuildArgs=false
+          noCache="false"
+          squash="false"
+          registriesBlock=""
+          inRegistriesBlock=false
+          registriesInsecure=""
+          inRegistriesInsecure=false
+          registriesSearch=""
+          inRegistriesSearch=false
+          tlsVerify=true
+          while [[ $# -gt 0 ]]; do
+            arg="$1"
+            shift
+
+            if [ "${arg}" == "--context" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              context="$1"
+              shift
+            elif [ "${arg}" == "--dockerfile" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              dockerfile="$1"
+              shift
+            elif [ "${arg}" == "--image" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              image="$1"
+              shift
+            elif [ "${arg}" == "--no-cache" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              noCache="$1"
+              shift
+            elif [ "${arg}" == "--pull" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              pull="$1"
+              shift
+            elif [ "${arg}" == "--squash" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              squash="$1"
+              shift
+            elif [ "${arg}" == "--runtime-stage-from" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              runtimeStageFrom="$1"
+              shift
+            elif [ "${arg}" == "--target" ]; then
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+              if [ "$1" != "" ]; then
+                budArgs+=(--target "$1")
+              fi
+              shift
+            elif [ "${arg}" == "--build-args" ]; then
+              inBuildArgs=true
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+            elif [ "${arg}" == "--registries-block" ]; then
+              inRegistriesBlock=true
+              inBuildArgs=false
+              inRegistriesInsecure=false
+              inRegistriesSearch=false
+            elif [ "${arg}" == "--registries-insecure" ]; then
+              inRegistriesInsecure=true
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesSearch=false
+            elif [ "${arg}" == "--registries-search" ]; then
+              inRegistriesSearch=true
+              inBuildArgs=false
+              inRegistriesBlock=false
+              inRegistriesInsecure=false
+            elif [ "${inBuildArgs}" == "true" ]; then
+              budArgs+=("--build-arg" "${arg}")
+            elif [ "${inRegistriesBlock}" == "true" ]; then
+              registriesBlock="${registriesBlock}'${arg}', "
+            elif [ "${inRegistriesInsecure}" == "true" ]; then
+              registriesInsecure="${registriesInsecure}'${arg}', "
+
+              # This assumes that the image is passed before the insecure registries which is fair in this context
+              if [[ ${image} == ${arg}/* ]]; then
+                tlsVerify=false
+              fi
+            elif [ "${inRegistriesSearch}" == "true" ]; then
+              registriesSearch="${registriesSearch}'${arg}', "
+            else
+              echo "Invalid usage"
+              exit 1
+            fi
+          done
+
+          # Verify the existence of the context directory
+          if [ ! -d "${context}" ]; then
+            echo -e "The context directory '${context}' does not exist."
+            echo -n "ContextDirNotFound" > '$(results.shp-error-reason.path)'
+            echo -n "The context directory '${context}' does not exist." > '$(results.shp-error-message.path)'
+            exit 1
+          fi
+          cd "${context}"
+
+          # Verify the existence of the Dockerfile
+          if [ ! -f "${dockerfile}" ]; then
+            echo -e "The Dockerfile '${dockerfile}' does not exist."
+            echo -n "DockerfileNotFound" > '$(results.shp-error-reason.path)'
+            echo -n "The Dockerfile '${dockerfile}' does not exist." > '$(results.shp-error-message.path)'
+            exit 1
+          fi
+
+          echo "[INFO] Creating registries config file..."
+          if [ "${registriesSearch}" != "" ]; then
+            cat <<EOF >>/tmp/registries.conf
+          [registries.search]
+          registries = [${registriesSearch::-2}]
+
+          EOF
+          fi
+          if [ "${registriesInsecure}" != "" ]; then
+            cat <<EOF >>/tmp/registries.conf
+          [registries.insecure]
+          registries = [${registriesInsecure::-2}]
+
+          EOF
+          fi
+          if [ "${registriesBlock}" != "" ]; then
+            cat <<EOF >>/tmp/registries.conf
+          [registries.block]
+          registries = [${registriesBlock::-2}]
+
+          EOF
+          fi
+
+          if [ "${noCache}" == "true" ]; then
+            budArgs+=("--no-cache")
+          fi
+
+          if [ "${pull}" != "missing" ]; then
+            budArgs+=("--pull=${pull}")
+          fi
+
+          if [ "${squash}" == "true" ]; then
+            budArgs+=("--squash")
+          fi
+
+          if [ -n "${runtimeStageFrom}" ]; then
+            lastFromImage=$(tac "${dockerfile}" | grep -m1 -i -E '^[ ]*FROM' | \
+              sed -n '0,/p/s/^[ ]*from[ ]\+\([^ ]*\)[ ]*\(as.*$\)\{0,1\}$/\1/Ip')
+            if [ -n "${lastFromImage}" ]; then
+              budArgs+=("--build-context" "${lastFromImage}=docker-image://${runtimeStageFrom}")
+            fi
+          fi
+
+          # Building the image
+          echo "[INFO] Building image ${image}"
+          buildah --storage-driver=$(params.storage-driver) \
+            bud "${budArgs[@]}" \
+            --registries-conf=/tmp/registries.conf \
+            --tag="${image}" \
+            --file="${dockerfile}" \
+            .
+
+          # Push the image
+          echo "[INFO] Pushing image ${image}"
+          buildah --storage-driver=$(params.storage-driver) push \
+            --digestfile='$(results.shp-image-digest.path)' \
+            --tls-verify="${tlsVerify}" \
+            "${image}" \
+            "docker://${image}"
+        - --
+        - --context
+        - $(params.shp-source-context)
+        - --dockerfile
+        - $(params.dockerfile)
+        - --image
+        - $(params.shp-output-image)
+        - --build-args
+        - $(params.build-args[*])
+        - --registries-block
+        - $(params.registries-block[*])
+        - --registries-insecure
+        - $(params.registries-insecure[*])
+        - --registries-search
+        - $(params.registries-search[*])
+        - --target
+        - $(params.target)
+        - --no-cache
+        - $(params.no-cache)
+        - --pull
+        - $(params.pull)
+        - --squash
+        - $(params.squash)
+        - --runtime-stage-from
+        - $(params.runtime-stage-from)
+      command:
+        - /bin/bash
+      image: registry.access.redhat.com/ubi9/buildah:latest@sha256:ce2db38cddeedde4489473a689981c532dff4e2e63971d20bb7b3ceca996c18d
+      imagePullPolicy: IfNotPresent
+      name: build-and-push
+      resources:
+        limits:
+          cpu: "1"
+          memory: 2Gi
+        requests:
+          cpu: 250m
+          memory: 65Mi
+      securityContext:
+        capabilities:
+          add:
+            - SETFCAP
+      volumeMounts:
+        - mountPath: /etc/pki/entitlement
+          name: etc-pki-entitlement
+        - mountPath: /var/shipwright/trusted-ca
+          name: trusted-ca
+          readOnly: true
+      workingDir: $(params.shp-source-root)
+  volumes:
+    - emptyDir: {}
+      name: etc-pki-entitlement
+      overridable: true
+    - emptyDir: {}
+      name: trusted-ca
+      overridable: true
+metadata:
+  name: buildah-ubi9
+  namespace: verseghy
