@@ -47,7 +47,12 @@ spec:
           volumeMounts:
             - name: data
               mountPath: "/data"
-          image: quay.io/minio/minio:latest
+          # MinIO Inc. deleted its public images from Docker Hub (2026-09-11) and quay.io
+          # stopped serving quay.io/minio/minio anonymously (2026-09-24), which left this
+          # pod in ImagePullBackOff and tide in CrashLoopBackOff. Chainguard still publishes
+          # a community build, and the digest pin also makes kubelet reuse the cached image
+          # instead of re-pulling "latest" on every restart.
+          image: cgr.dev/chainguard/minio:latest@sha256:32c504bea4574d8f29d719b37bc0dad920ecf3e22b81dc5cea0bb105af2ce10f
           args:
             - server
             - /data
