@@ -3,7 +3,11 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 1
+  # Deliberately scaled to zero on 2026-10-21: the backend has a security
+  # vulnerability that must be fixed before it serves traffic again. This takes
+  # the production API down on purpose. Restore by setting replicas back to 1
+  # once a patched image tag is in kustomization.yaml.
+  replicas: 0
   selector:
     matchLabels:
       app: backend
