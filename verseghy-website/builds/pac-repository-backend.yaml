@@ -1,0 +1,11 @@
+# Opts website_backend into Pipelines-as-Code and routes its push events to the
+# verseghy namespace; PAC then runs .tekton/push.yaml from the pushed revision.
+# concurrency_limit serializes builds so rapid pushes don't race.
+apiVersion: pipelinesascode.tekton.dev/v1alpha1
+kind: Repository
+metadata:
+  name: website-backend
+  namespace: verseghy
+spec:
+  url: https://github.com/Verseghy/website_backend
+  concurrency_limit: 1

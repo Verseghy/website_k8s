@@ -3,10 +3,7 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  # Deliberately scaled to zero on 2026-10-21: the backend has a security
-  # vulnerability that must be fixed before it serves traffic again. This takes
-  # the production API down on purpose. Restore by setting replicas back to 1
-  # once a patched image tag is in kustomization.yaml.
+  # Held at 0 until the patched image tag is deployed; set to 1 for the cutover.
   replicas: 0
   selector:
     matchLabels:
@@ -21,12 +18,22 @@ spec:
         openshift.io/required-scc: anyuid
     spec:
       serviceAccount: anyuid
-      hostUsers: false
+      # The backend-pv-claim volume is owned uid 1000, group 33 (dirs mode 775).
+      # Run as uid 1000 to own its files, gid 0 for the base image's own group-0
+      # writable dirs (bootstrap/cache, the public/storage symlink), and
+      # supplemental gid 33 to create and unlink the volume's group-33 entries.
+      # No fsGroup: it would recursively re-chown the ~3 GB volume on each mount.
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 0
+        supplementalGroups: [33]
       containers:
         - name: app
           image: ghcr.io/verseghy/website_backend:e53fd921d334285651b0634077db260f55ec0563
           ports:
-            - containerPort: 80
+            # The base's Apache listens on 8080 as a non-root user.
+            - name: http
+              containerPort: 8080
           imagePullPolicy: IfNotPresent
           env:
             - name: APP_KEY
@@ -54,9 +61,33 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: backpack-license
-
+          # Probe a static file, not a PHP route: a web route writes a Laravel
+          # session file to the volume on every poll.
+          readinessProbe:
+            httpGet:
+              path: /robots.txt
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /robots.txt
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              # Also caps the s2i base's Apache worker count.
+              memory: 512Mi
           volumeMounts:
-            - mountPath: /var/www/storage
+            - mountPath: /opt/app-root/src/storage
               name: backend-persistent-storage
       volumes:
         - name: backend-persistent-storage
