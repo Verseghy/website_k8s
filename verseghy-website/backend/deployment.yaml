@@ -3,8 +3,7 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  # Held at 0 until the patched image tag is deployed; set to 1 for the cutover.
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: backend
