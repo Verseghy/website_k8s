@@ -3,10 +3,11 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  # Deliberately scaled to zero on 2026-10-21: the backend has a security
-  # vulnerability that must be fixed before it serves traffic again. This takes
-  # the production API down on purpose. Restore by setting replicas back to 1
-  # once a patched image tag is in kustomization.yaml.
+  # Still at zero from the 2026-10-21 PHP2Shell scale-down (#43). The patched
+  # image (Red Hat UBI 8 php-74 base, RHSA-2026:87080) builds from the
+  # website_backend master push; argocd-image-updater then opens a PR bumping
+  # the tag in kustomization.yaml. FINAL CUTOVER: set replicas to 1 in a
+  # separate commit once that patched SHA tag has landed here.
   replicas: 0
   selector:
     matchLabels:
@@ -21,12 +22,28 @@ spec:
         openshift.io/required-scc: anyuid
     spec:
       serviceAccount: anyuid
-      hostUsers: false
+      # Run as uid 1000 with the root group (gid 0) and the volume's group
+      # (gid 33). The UBI php-74 base keeps its application files group-0 and
+      # group-writable, so gid 0 covers /opt/app-root (bootstrap/cache, the
+      # public/storage symlink). The backend-pv-claim volume is owned uid 1000,
+      # group 33 (dirs mode 775), so uid 1000 owns most files outright and the
+      # supplemental gid 33 lets the app create and unlink the files the former
+      # php-fpm wrote as uid 33. No fsGroup: that would recursively re-chown the
+      # ~2.9 GB volume on every mount and rewrite the forensic ownership.
+      # (The former hostUsers:false user namespace is dropped: it was inert on
+      # this MicroShift -- volume files are literal uid 1000, not remapped -- and
+      # a standard shared namespace keeps the container uid aligned with them.)
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 0
+        supplementalGroups: [33]
       containers:
         - name: app
           image: ghcr.io/verseghy/website_backend:e53fd921d334285651b0634077db260f55ec0563
           ports:
-            - containerPort: 80
+            # The UBI php-74 base runs Apache as a non-root user on 8080.
+            - name: http
+              containerPort: 8080
           imagePullPolicy: IfNotPresent
           env:
             - name: APP_KEY
@@ -54,9 +71,37 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: backpack-license
-
+          # Probe a static file, not a PHP route: the Laravel web middleware
+          # starts a session on every request, which would litter the volume
+          # with a session file per probe. public/robots.txt is served directly
+          # by Apache and proves the container is accepting and serving HTTP.
+          readinessProbe:
+            httpGet:
+              path: /robots.txt
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /robots.txt
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              # Also the availability boundary the PHP2Shell guidance recommends;
+              # the s2i base sizes Apache worker count from this cgroup limit.
+              memory: 512Mi
           volumeMounts:
-            - mountPath: /var/www/storage
+            # App now lives at /opt/app-root/src (was /var/www); storage is here.
+            - mountPath: /opt/app-root/src/storage
               name: backend-persistent-storage
       volumes:
         - name: backend-persistent-storage
