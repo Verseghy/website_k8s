@@ -1,6 +1,6 @@
-# Namespaced copy of the operator-managed `buildah` ClusterBuildStrategy with one
-# difference: the build step runs on a RHEL 9 (UBI 9) buildah image instead of the
-# UBI 10 one.
+# Namespaced copy of the operator-managed `buildah` ClusterBuildStrategy with two
+# differences: the build step runs on a RHEL 9 (UBI 9) buildah image instead of the
+# UBI 10 one, and the build step gets more CPU and memory (see "Capacity" below).
 #
 # Why this exists: Builds for OpenShift 1.8.2 (installed 2026-09-30) switched the
 # cluster `buildah` strategy to registry.redhat.io/ubi10/buildah. RHEL 10 raised
@@ -13,15 +13,30 @@
 #
 # How to maintain: when the Builds operator is upgraded, diff this file's steps,
 # parameters and volumes against `oc get clusterbuildstrategy buildah -o yaml`
-# and carry over any script changes, keeping only the image line different. The
-# image is pinned by digest so a tag move cannot change what runs; bump it on
-# purpose with `oc image info registry.access.redhat.com/ubi9/buildah:latest`.
+# and carry over any script changes, keeping only the image line and the
+# build-and-push resources different. The image is pinned by digest so a tag
+# move cannot change what runs; bump it on purpose with
+# `oc image info registry.access.redhat.com/ubi9/buildah:latest`.
 # The pull policy is IfNotPresent so a cached image survives a registry outage
 # (the same failure mode that took down Prow's MinIO in October 2026).
 #
-# Consumers: website_frontend/.tekton/push.yaml and website_backend2/.tekton/push.yaml
-# reference this as {"name":"buildah-ubi9","kind":"BuildStrategy"}. Drop this file
-# again once the nodes are replaced with x86-64-v3 capable hardware.
+# Consumers: website_frontend/.tekton/push.yaml, website_backend2/.tekton/push.yaml
+# and (from its bootstrap PR on) website_backend3/.tekton/push.yaml reference it
+# as {"name":"buildah-ubi9","kind":"BuildStrategy"}. Drop this file again once
+# the nodes are replaced with x86-64-v3 capable hardware.
+#
+# Capacity: the operator default for the build-and-push step is 1 CPU / 2Gi.
+# At that size the Angular frontend hit Tekton's 60-minute TaskRun timeout three
+# times (website_frontend#1167); at 4 CPU / 6Gi it builds in about 17 minutes.
+# backend2 needs 33-48 minutes at 1 CPU, and a Loco (Rust) build such as
+# website_backend3 compiles about 440 crates with single rustc processes peaking
+# near 1.6 GB, so 1 CPU / 2Gi would take over an hour (website_backend3 ADR 0022).
+# The raise lives here rather than in per-repo `stepResources` overrides because
+# step resources in a BuildStrategy are schema-stable in every Shipwright
+# version, while the BuildRun `stepResources` field is missing from the CRDs on
+# the operator's builds-1.9 and main branches and would be pruned silently
+# (website_k8s#29). It applies to every build that uses this strategy. Keep it
+# when re-syncing with the operator strategy after an upgrade.
 apiVersion: shipwright.io/v1beta1
 kind: BuildStrategy
 spec:
@@ -321,13 +336,15 @@ spec:
       image: registry.access.redhat.com/ubi9/buildah:latest@sha256:ce2db38cddeedde4489473a689981c532dff4e2e63971d20bb7b3ceca996c18d
       imagePullPolicy: IfNotPresent
       name: build-and-push
+      # Raised from the operator default (limits 1 CPU / 2Gi, requests 250m / 65Mi);
+      # see "Capacity" in the header.
       resources:
         limits:
+          cpu: "4"
+          memory: 6Gi
+        requests:
           cpu: "1"
           memory: 2Gi
-        requests:
-          cpu: 250m
-          memory: 65Mi
       securityContext:
         capabilities:
           add:
