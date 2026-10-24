@@ -1,0 +1,28 @@
+# Pipelines-as-Code Repository binding for website_backend3, the Loco (Rust)
+# backend and React admin that replaces backend1's admin and backend2's API.
+#
+# This CR opts the GitHub repository into PAC and routes its events into the
+# `verseghy` namespace. Authentication is handled by the cluster-global PAC
+# GitHub App (app-id 1271459 in openshift-pipelines/pipelines-as-code-secret),
+# so no per-repo provider secret is required here.
+#
+# When a `push` event for this repo arrives, PAC reads `.tekton/push.yaml` from
+# the pushed revision and runs it as a PipelineRun in this namespace. See that
+# file (in the website_backend3 repo) for the actual build trigger logic.
+#
+# Ordering: this CR must exist before the first push to website_backend3's
+# master that carries `.tekton/push.yaml` (its bootstrap PR). PAC ignores events
+# for repositories without a Repository CR, so a push that lands first produces
+# no image, and website_backend's first image had to be built by hand for that
+# reason. website_backend3 ADR 0022 makes the bootstrap PR wait for this CR.
+apiVersion: pipelinesascode.tekton.dev/v1alpha1
+kind: Repository
+metadata:
+  name: website-backend3
+  namespace: verseghy
+spec:
+  url: https://github.com/Verseghy/website_backend3
+  # Serialize PipelineRuns for this repo so two rapid master pushes don't kick
+  # off competing image builds; the latest queued run wins. A cold Rust build
+  # takes most of an hour, so parallel runs would also starve the hub.
+  concurrency_limit: 1
