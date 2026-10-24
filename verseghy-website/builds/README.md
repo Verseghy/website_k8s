@@ -27,8 +27,8 @@ Two pieces per repository:
 
 | Piece | Lives in | File |
 |-------|----------|------|
-| PAC `Repository` (opt-in + namespace routing) | this repo (GitOps) | `pac-repository-frontend.yaml`, `pac-repository-backend2.yaml` |
-| `PipelineRun` trigger **and the full build recipe** | the **source** repo's `master` branch | `website_frontend/.tekton/push.yaml`, `website_backend2/.tekton/push.yaml` |
+| PAC `Repository` (opt-in + namespace routing) | this repo (GitOps) | `pac-repository-frontend.yaml`, `pac-repository-backend2.yaml`, `pac-repository-backend3.yaml` |
+| `PipelineRun` trigger **and the full build recipe** | the **source** repo's `master` branch | `website_frontend/.tekton/push.yaml`, `website_backend2/.tekton/push.yaml`, `website_backend3/.tekton/push.yaml` |
 
 ## Why there is no `Build` CR here
 
