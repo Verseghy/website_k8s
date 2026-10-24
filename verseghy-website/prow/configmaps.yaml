@@ -110,6 +110,20 @@ data:
         - do-not-merge/invalid-owners-file
         orgs:
         - Verseghy
+      # website_backend3 is built by one maintainer plus AI agents and is
+      # reviewed as a whole once the rewrite is complete, so the author's own
+      # OWNERS approval is enough there. lgtm cannot be self-applied, which is
+      # why this repo gets its own query instead of the org-wide one above.
+      # Branch protection (required checks, linear history) still applies.
+      - labels:
+        - approved
+        missingLabels:
+        - needs-rebase
+        - do-not-merge/hold
+        - do-not-merge/work-in-progress
+        - do-not-merge/invalid-owners-file
+        repos:
+        - Verseghy/website_backend3
 
     branch-protection:
       include:
