@@ -9,6 +9,7 @@ Auto-promotes container images into this repo via pull requests, run by the
 |-----|-------|----------|
 | frontend, backend, backend2 | `ghcr.io/verseghy/website_*` | newest-build (commit-SHA tags) |
 | mysql | `mysql` | semver, 8.4 patch line |
+| postgres | `postgres` | semver, 18 minor releases |
 | backend2-redis | `redis` | semver, 6.2-alpine patch line |
 
 Each managed app has a `kustomization.yaml` holding the `images:` entry that
@@ -22,4 +23,5 @@ Image Updater rewrites.
 
 ## Not managed
 
-`static`, Prow CronJob images.
+`static`, Prow CronJob images, and the PostgreSQL metrics exporter in
+`../postgres/deployment.yaml` (pinned by digest, bumped by hand).

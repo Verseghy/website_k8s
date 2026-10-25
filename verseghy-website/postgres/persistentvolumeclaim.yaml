@@ -1,0 +1,19 @@
+# The default LVMS storage class (topolvm-provisioner) creates the PV with
+# reclaim policy Delete, so the PV is patched to Retain by hand once this
+# claim is Bound (the pod's first start binds it).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pv-claim
+  annotations:
+    # Argo CD keeps this claim when the Application, or the root that owns
+    # it, is deleted, and never prunes it, not even in a manual sync with
+    # prune. Without it, the Application's finalizer deletes the claim, and
+    # a PV still on Delete goes with it.
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

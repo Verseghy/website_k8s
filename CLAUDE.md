@@ -16,8 +16,8 @@ one says why it holds.
   (`verseghy-website/image-updater/`), Red Hat Developer Hub with its
   PostgreSQL (`verseghy-website/rhdh/`) and `verseghy-website/eso-in-cluster/`.
 - **Edge** (destination `verseghy-microshift`): MicroShift. The sites
-  (`frontend`, `backend`, `backend2`, `backend2-redis`, `mysql`, `static`,
-  `eso` under `verseghy-website/`) and `microshift-infra/`.
+  (`frontend`, `backend`, `backend2`, `backend2-redis`, `mysql`, `postgres`,
+  `static`, `eso` under `verseghy-website/`) and `microshift-infra/`.
 - `verseghy-website/application.yaml` and `microshift-infra/application.yaml`
   are the roots; they sync the Applications in their `applications/`
   directories. Each Application's `spec.destination` names its cluster.
@@ -53,8 +53,9 @@ one says why it holds.
   `prune`, so the resource stays and its Application shows `OutOfSync` until a
   human prunes it.
 - **Never run a command that reads or writes the databases this repository
-  deploys** (MySQL on the edge, which `backend` and `backend2` use, and
-  Developer Hub's PostgreSQL on the hub): no database client, and no
+  deploys** (MySQL on the edge, which `backend` and `backend2` use,
+  backend3's PostgreSQL on the edge, and Developer Hub's PostgreSQL on the
+  hub): no database client, and no
   application command such as `php artisan migrate`, `db:seed` or `db:wipe` in
   the Laravel `backend` pod, neither through `oc exec`, `oc rsh` or `oc debug`
   nor through a remote host. They hold live data, and a human operates them.
@@ -77,7 +78,7 @@ one says why it holds.
   SHA tags** (`newest-build` with `allowTags: regexp:^[0-9a-f]{40}$` in
   `verseghy-website/image-updater/imageupdater.yaml`), so a `latest` or short
   tag can never reach the sites. `mysql` and `redis` each follow one semver
-  patch line instead.
+  patch line instead, and `postgres` the minor releases of PostgreSQL 18.
 - **A new app's first image tag is set by hand** in the `images:` entry of its
   `kustomization.yaml` (for a PAC-built image, the full SHA of a commit whose
   build succeeded), and the app gets its entry in `imageupdater.yaml`. Image
