@@ -1,3 +1,11 @@
+# PR checks for website_k8s.
+#
+# Each job reports one status context: its `name`, or its job id when it has
+# no `name`. Today only `tide` is a required context for this repository (Prow
+# branch protection in verseghy-website/prow/configmaps.yaml and the master
+# ruleset), but CI job names are branch-protection contracts in Verseghy: once
+# a job's context is required, renaming the job and changing the Prow
+# configuration happen in the same PR (see CLAUDE.md).
 name: CI
 
 on:
@@ -5,11 +13,38 @@ on:
     branches:
       - master
 
+# The token gets no permissions by default; each job asks for what it needs.
 permissions: {}
 
 jobs:
+  # Reports the context `check`, as this job has since the workflow was added:
+  # keep the id and give it no `name`.
   check:
-    runs-on: ubuntu-latest
+    # Ubuntu 24.04, the release the guardrail tests were verified on (in an
+    # ubuntu:24.04 container: bash 5.2, jq 1.7). A fixed label, not
+    # ubuntu-latest, so moving to another runner release is a reviewed edit.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      # actions/checkout reads the repository; nothing else is needed.
+      contents: read
+    defaults:
+      run:
+        # An explicit `bash` runs steps with `bash --noprofile --norc -eo pipefail {0}`.
+        shell: bash
     steps:
-      - name: No-op check
-        run: echo "CI check passed"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Guardrail hook tests (scripts/tests/test-guard-bash.sh)
+        # Tests the agent guardrails in .claude/: the deny rules and the
+        # PreToolUse hook that screens every Bash command an agent runs here
+        # (website_backend3 ADR 0024 section 4). The hook and its tests need
+        # bash and jq. The GitHub-hosted Ubuntu images ship jq; it is installed
+        # only if an image ever drops it, so the tests never skip silently.
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install --yes jq
+          fi
+          jq --version
+          bash scripts/tests/test-guard-bash.sh
