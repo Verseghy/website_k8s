@@ -1,7 +1,6 @@
 {
   "permissions": {
     "deny": [
-      "Bash(cargo loco db reset *)",
       "Bash(oc delete pvc *)",
       "Bash(oc delete pvc/*)",
       "Bash(oc delete persistentvolumeclaim *)",

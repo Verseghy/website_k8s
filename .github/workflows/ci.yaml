@@ -39,9 +39,9 @@ jobs:
       - name: Guardrail hook tests (scripts/tests/test-guard-bash.sh)
         # Tests the agent guardrails in .claude/: the deny rules and the
         # PreToolUse hook that screens every Bash command an agent runs here
-        # (website_backend3 ADR 0024 section 4). The hook and its tests need
-        # bash and jq. The GitHub-hosted Ubuntu images ship jq; it is installed
-        # only if an image ever drops it, so the tests never skip silently.
+        # (CLAUDE.md, "Guardrails"). The hook and its tests need bash and jq.
+        # The GitHub-hosted Ubuntu images ship jq; it is installed only if an
+        # image ever drops it, so the tests never skip silently.
         run: |
           if ! command -v jq >/dev/null 2>&1; then
             sudo apt-get update && sudo apt-get install --yes jq
