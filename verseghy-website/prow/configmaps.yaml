@@ -180,6 +180,43 @@ data:
                     - Clippy
                     - Test
                     - Format
+            # The GitHub Actions jobs that website_backend3's ADR 0022
+            # (section 3) marks as required. The job names are the contract:
+            # renaming a job there blocks merging until this list changes.
+            # "cargo-deny check advisories" is left out on purpose: a new
+            # RustSec advisory can fail it with no change in the repo, so it
+            # must not block unrelated PRs. "tide" comes from the top-level
+            # list; Prow merges the two lists. Tide reads this list straight
+            # from this config (from-branch-protection), so it applies as soon
+            # as the ConfigMap syncs; GitHub enforces it from the next
+            # branchprotector run.
+            #
+            # Unlike the other repos, the list sits at repo level, not under
+            # branches.master. Tide resolves it by the PR's base branch and
+            # ignores `include` (only branchprotector applies that). Under
+            # branches.master, a website_backend3 PR based on another PR's
+            # branch (ADR 0012 section 1.6) would need only "tide", and
+            # Tide would merge it on the author's own approval without CI.
+            # At repo level Tide requires the jobs for every base branch,
+            # and GitHub protection still covers master only (`include`).
+            website_backend3:
+              required_status_checks:
+                contexts:
+                - Format
+                - Clippy
+                - Test
+                - Contract
+                - Toolchain
+                - "cargo-deny check bans licenses sources"
+                - "Admin lint"
+                - "Admin typecheck"
+                - "Admin test"
+                - "Admin licenses"
+                - E2E
+                - "Loco skill"
+                - "PR title"
+                - "No session links"
+                - "Workflow policy"
             website_frontend:
               branches:
                 master:
