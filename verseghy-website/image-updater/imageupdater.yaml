@@ -55,6 +55,19 @@ spec:
           commonUpdateSettings:
             updateStrategy: semver
             allowTags: 'regexp:^8\.4\.[0-9]+$'
+    # PostgreSQL 18 minor releases only: a new major needs a dump and
+    # restore (or pg_upgrade) of the data directory, so it is a manual change.
+    # The exporter in the same Deployment is pinned by digest and not managed.
+    - namePattern: verseghy-website-postgres
+      images:
+        - alias: postgres
+          imageName: postgres
+          manifestTargets:
+            kustomize:
+              name: postgres
+          commonUpdateSettings:
+            updateStrategy: semver
+            allowTags: 'regexp:^18\.[0-9]+$'
     - namePattern: verseghy-website-backend2-redis
       images:
         - alias: redis

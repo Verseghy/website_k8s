@@ -1,0 +1,208 @@
+# PostgreSQL 18 for backend3: one instance with its data on a ReadWriteOnce
+# volume, so the strategy is Recreate (the old pod releases the volume before
+# the new one starts).
+#
+# It runs under restricted-v2, which assigns the pod an arbitrary UID and an
+# fsGroup from the namespace's ranges. The official image supports that: its
+# entrypoint runs initdb through nss_wrapper when the UID has no passwd
+# entry, and PostgreSQL 18 images keep PGDATA in
+# /var/lib/postgresql/18/docker, a sub-directory of the volume, so initdb
+# creates and owns it. The pod template requires restricted-v2, so a
+# higher-priority SCC granted later, such as anyuid, cannot take over: it
+# would run the image as its own user, root, which runAsNonRoot refuses.
+#
+# The database, its role and the exporter's role come from 10-roles.sh in
+# configmap.yaml on the first start. Changes to the settings below take
+# effect at the next pod start.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: postgres
+      annotations:
+        openshift.io/required-scc: restricted-v2
+    spec:
+      automountServiceAccountToken: false
+      # Service links would put POSTGRES_* variables of the postgres Service
+      # into the environment, next to the image's own POSTGRES_* settings.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        # kubelet applies the pod's fsGroup to LVMS volumes. With the default
+        # policy, Always, it walks the whole volume on every mount and adds
+        # group write to every file and directory. PostgreSQL refuses a data
+        # directory with group write; only the image entrypoint's chmod of
+        # PGDATA at each start would repair it. OnRootMismatch changes only a
+        # volume whose root does not match yet: the empty one at the first
+        # mount.
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: postgres
+          image: postgres:18
+          args:
+            - -c
+            - hba_file=/etc/postgresql/pg_hba.conf
+            # Sized for tens of MiB of data on a small node.
+            - -c
+            - shared_buffers=32MB
+            - -c
+            - max_wal_size=256MB
+            # 37 for applications (3 stay reserved for the superuser). Each
+            # backend3 process holds up to 7: its database pool (5 by
+            # default) and its queue pool (2). Add its CronJobs, the
+            # migration Job and the exporter. With all 37 in use the server
+            # stayed inside the memory limit below.
+            - -c
+            - max_connections=40
+          env:
+            # The bootstrap superuser (postgres). Used for initialisation and
+            # maintenance only; no application connects with it.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: postgres-admin-password
+            # Read only by 10-roles.sh. The POSTGRES_ prefix matters: the
+            # entrypoint unsets every POSTGRES_* variable before it starts the
+            # server.
+            - name: POSTGRES_WEBSITE_BACKEND3_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: postgres-website_backend3-password
+            # Used by initdb on the first start only. The builtin C.UTF-8
+            # locale sorts by code point and does not depend on the image's
+            # glibc, so an image update cannot change the order of existing
+            # text indexes. Hungarian ordering uses the explicit hu_icu
+            # collation instead. The authentication methods apply to the
+            # pg_hba.conf that initdb writes, which hba_file above replaces;
+            # they keep that copy free of trust lines.
+            - name: POSTGRES_INITDB_ARGS
+              value: >-
+                --locale-provider=builtin --locale=C.UTF-8
+                --auth-local=scram-sha-256 --auth-host=scram-sha-256
+          ports:
+            - name: postgres
+              containerPort: 5432
+          # The image's own check. Over TCP, because during initialisation a
+          # temporary server listens on the Unix socket only. -U only names
+          # the user in the startup packet; pg_isready never authenticates.
+          startupProbe:
+            exec:
+              command: [pg_isready, -h, 127.0.0.1, -p, "5432", -U, postgres, -t, "3"]
+            periodSeconds: 5
+            timeoutSeconds: 5
+            # Up to five minutes for initdb on the first start, or for crash
+            # recovery.
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: [pg_isready, -h, 127.0.0.1, -p, "5432", -U, postgres, -t, "3"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: [pg_isready, -h, 127.0.0.1, -p, "5432", -U, postgres, -t, "3"]
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+            - name: run
+              mountPath: /var/run/postgresql
+            # nss_wrapper's passwd and group files during initdb.
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /etc/postgresql
+              readOnly: true
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+        # Prometheus metrics for the database on :9187/metrics, for the hub's
+        # monitoring to scrape; nothing on the edge scrapes it. It connects
+        # over the shared Unix socket (pg_hba.conf). It has no probes: a
+        # failing readiness check would take the database out of its Service.
+        # A crash-looping exporter does that too, so its image is pinned by
+        # digest and bumped by hand, not by Image Updater.
+        - name: exporter
+          image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
+          args:
+            # PostgreSQL 17 moved the checkpoint statistics to
+            # pg_stat_checkpointer; this collector is off by default.
+            - --collector.stat_checkpointer
+          env:
+            - name: DATA_SOURCE_NAME
+              value: host=/var/run/postgresql user=postgres_exporter dbname=verseghy sslmode=disable
+          ports:
+            - name: metrics
+              containerPort: 9187
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: run
+              mountPath: /var/run/postgresql
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+        - name: run
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: config
+          configMap:
+            name: postgres
+            items:
+              - key: pg_hba.conf
+                path: pg_hba.conf
+        - name: initdb
+          configMap:
+            name: postgres
+            items:
+              - key: 10-roles.sh
+                path: 10-roles.sh
+                # Executable, so the entrypoint runs it in its own shell
+                # instead of sourcing it.
+                mode: 0555

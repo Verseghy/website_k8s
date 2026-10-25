@@ -14,6 +14,19 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
+  name: postgres
+  description: PostgreSQL 18 datastore for backend3
+  annotations:
+    argocd/instance-name: verseghy
+    argocd/app-selector: verseghy.net/component=postgres
+spec:
+  type: database
+  owner: group:verseghy
+  system: verseghy-website
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
   name: backend2-redis
   description: Redis 6.2 cache for backend2
   annotations:

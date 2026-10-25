@@ -1,0 +1,16 @@
+# No Route targets this Service: the database and the exporter's /metrics
+# are reachable only inside the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+    - name: metrics
+      port: 9187
+      targetPort: metrics
+  selector:
+    app: postgres
