@@ -30,7 +30,7 @@
 # times (website_frontend#1167); at 4 CPU / 6Gi it builds in about 17 minutes.
 # backend2 needs 33-48 minutes at 1 CPU, and a Loco (Rust) build such as
 # website_backend3 compiles about 440 crates with single rustc processes peaking
-# near 1.6 GB, so 1 CPU / 2Gi would take over an hour (website_backend3 ADR 0022).
+# near 1.6 GB, so 1 CPU / 2Gi would take over an hour.
 # The raise lives here rather than in per-repo `stepResources` overrides because
 # step resources in a BuildStrategy are schema-stable in every Shipwright
 # version, while the BuildRun `stepResources` field is missing from the CRDs on

@@ -180,9 +180,9 @@ data:
                     - Clippy
                     - Test
                     - Format
-            # The GitHub Actions jobs that website_backend3's ADR 0022
-            # (section 3) marks as required. The job names are the contract:
-            # renaming a job there blocks merging until this list changes.
+            # website_backend3's required GitHub Actions PR jobs. The job names
+            # are the contract: renaming a job there blocks merging until this
+            # list changes.
             # "cargo-deny check advisories" is left out on purpose: a new
             # RustSec advisory can fail it with no change in the repo, so it
             # must not block unrelated PRs. "tide" comes from the top-level
@@ -194,9 +194,9 @@ data:
             # Unlike the other repos, the list sits at repo level, not under
             # branches.master. Tide resolves it by the PR's base branch and
             # ignores `include` (only branchprotector applies that). Under
-            # branches.master, a website_backend3 PR based on another PR's
-            # branch (ADR 0012 section 1.6) would need only "tide", and
-            # Tide would merge it on the author's own approval without CI.
+            # branches.master, a website_backend3 PR stacked on another open
+            # PR's branch would need only "tide", and Tide would merge it on
+            # the author's own approval without CI.
             # At repo level Tide requires the jobs for every base branch,
             # and GitHub protection still covers master only (`include`).
             website_backend3:

@@ -14,7 +14,7 @@
 # master that carries `.tekton/push.yaml` (its bootstrap PR). PAC ignores events
 # for repositories without a Repository CR, so a push that lands first produces
 # no image, and website_backend's first image had to be built by hand for that
-# reason. website_backend3 ADR 0022 makes the bootstrap PR wait for this CR.
+# reason.
 apiVersion: pipelinesascode.tekton.dev/v1alpha1
 kind: Repository
 metadata:
