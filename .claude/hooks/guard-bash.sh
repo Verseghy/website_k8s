@@ -1,58 +1,52 @@
 #!/usr/bin/env bash
 # guard-bash.sh: the PreToolUse hook that screens every Bash command an agent
-# runs in website_k8s (layer 2 of the guardrails that website_backend3's
-# ADR 0024 section 4 defines; its "Scope of the guardrails" gives website_k8s
-# the same hook, without the cargo commands in check 2).
+# runs in website_k8s (layer 2 of the guardrails; layer 1 is the deny rules in
+# .claude/settings.json, and CLAUDE.md, "Guardrails", describes both).
 #
 # Why it exists
-#   This repository is the GitOps source of the Verseghy clusters, and an agent
-#   working in it usually has `oc` access to them. Layer 1, the deny rules in
-#   .claude/settings.json, matches command text as written. It misses the same
-#   command behind a wrapper (`sh -c '...'`), with another flag order, or inside
-#   `oc exec`. This hook reads the whole command, splits it the way a shell
-#   would, and blocks:
+#   This repository is the GitOps source of the Verseghy clusters (the
+#   OpenShift hub and the MicroShift edge), and an agent working in it usually
+#   has `oc` access to them. Layer 1 matches command text as written. It misses
+#   the same command behind a wrapper (`sh -c '...'`), with another flag order,
+#   or inside `oc exec`. This hook reads the whole command, splits it the way a
+#   shell would, and blocks:
 #
-#   check 1, dangerous commands anywhere in the command (unchanged from
-#   website_backend3):
-#     - kubectl (Verseghy uses oc, never kubectl);
+#   check 1, dangerous commands anywhere in the command:
+#     - kubectl (the clusters are run with oc, and these checks parse oc);
 #     - force deletion: a true --force on oc delete or oc replace, whatever
 #       the grace period, and a true --force with --grace-period=0 anywhere;
 #     - oc delete naming a PVC, PV or Argo CD Application in any spelling
 #       (ApplicationSets too, because deleting one deletes its Applications);
-#     - Loco's data-wiping subcommands `db reset`, `db down`, `db truncate`
-#       and `db seed --reset` / `-r` of any binary: cargo loco, the app binary
-#       backend3-cli, or inside oc exec / oc rsh / oc debug;
-#     - sea-orm-cli `migrate fresh|refresh|reset|down`.
-#   check 2, the database target of database-touching commands (psql,
-#     pg_restore, mysql, sea-orm-cli): it blocks when the target host is not
-#     local (localhost, 127.0.0.1, ::1 or a Unix socket) or cannot be checked.
-#     Any of them run through oc exec, oc rsh or oc debug (also as a heredoc,
-#     here-string or piped script) runs in the cluster and is always blocked.
-#     ADR 0024 leaves the cargo commands (cargo loco, cargo run, cargo test,
-#     cargo nextest) and with them the importer-source check
-#     (IMPORT_SOURCE_DATABASE_URL, read only for cargo commands) out of check 2
-#     here: website_k8s holds no Rust code, and website_backend3 checks its
-#     cargo commands with its own copy of this hook and its load_config guard.
+#     - the data-wiping commands of application CLIs, also inside oc exec,
+#       oc rsh or oc debug, where they would wipe a cluster database:
+#       Laravel's `artisan migrate:fresh|refresh|reset|rollback` and
+#       `artisan db:wipe`, abbreviated too (the backend Deployment is a
+#       Laravel app on the edge MySQL), and the `db reset`, `db down`,
+#       `db truncate` and `db seed --reset` / `-r` subcommands of any program
+#       (the Loco convention).
+#   check 2, the database target of the database clients psql, pg_restore and
+#     mysql: it blocks when the target host is not local (localhost,
+#     127.0.0.1, ::1 or a Unix socket) or cannot be checked. A client run
+#     through oc exec, oc rsh or oc debug (directly, through `sh -c`, as a
+#     here-string or as a heredoc) runs in the cluster and is always blocked.
+#     A script piped into such a shell (`echo 'psql' | oc exec -i <pod> -- sh`)
+#     is checked only as a local command; CLAUDE.md lists that gap.
 #
-#   website_k8s has no layer 3 (website_backend3's code-level database guard),
-#   so this hook and human review are what stand between an agent and a
-#   destructive cluster operation. The hook is a second line of defence against
-#   agent mistakes, not a security boundary: commands that come from files (for
-#   example `oc delete -f`) or from scripts are not visible to it, and neither
-#   are resource names that another command produces (`oc delete $(oc get pvc
+#   website_k8s has no code-level database guard, so this hook and human
+#   review are what stand between an agent and a destructive cluster
+#   operation. The hook is a second line of defence against agent mistakes,
+#   not a security boundary: commands that come from files (for example
+#   `oc delete -f`) or from scripts are not visible to it, and neither are
+#   resource names that another command produces (`oc delete $(oc get pvc
 #   -o name)`, `oc get pvc -o name | xargs oc delete`). CLAUDE.md lists the
 #   paths that neither layer covers.
 #
 # Origin
-#   Adapted from website_backend3@4e7fb76:.claude/hooks/guard-bash.sh. The
-#   parser and check 1 are unchanged; check 2 drops the cargo commands and the
-#   importer-source check; the messages point at this repository and at the
-#   public ADR. A fix to the shared parser or to check 1 belongs in both copies.
-#   Licence: website_backend3 is AGPL-3.0-only, and its ADR 0012 lets its code
-#   move into an MPL-2.0 repository only if its authors relicense it. The
+#   Adapted from Verseghy/website_backend3's .claude/hooks/guard-bash.sh
+#   (commit 4e7fb76). Licence: that repository is AGPL-3.0-only; the
 #   original's only human author is a maintainer of both repositories and, by
-#   merging this adaptation here, licenses it under website_k8s's MPL-2.0
-#   (LICENSE).
+#   merging the adaptation here (#54), licensed it under this repository's
+#   MPL-2.0 (LICENSE).
 #
 # Contract with Claude Code (verified against the "Hooks reference" of the
 # Claude Code docs, 2026-10-25)
@@ -71,8 +65,8 @@
 # Design notes
 #   - It runs before every Bash call, so it must be fast: it starts one jq
 #     process, and jq returns "allow" at once for any command that contains
-#     neither a trigger word (kubectl, oc, db, psql, ...) nor one of the
-#     variables check 2 reads. Typical commands take a few tens of
+#     neither a trigger word (kubectl, oc, db, artisan, psql, ...) nor one of
+#     the variables check 2 reads. Typical commands take a few tens of
 #     milliseconds; long ones are cut into chunks first (see `chunks`), and
 #     each segment sees only the assignments in scope for it, so the work
 #     grows linearly with the length of the command.
@@ -89,24 +83,25 @@
 #     merely mention a command are not blocked. The cases it handles are
 #     pinned by scripts/tests/test-guard-bash.sh, which must pass before this
 #     file changes (it runs in the CI "check" job, .github/workflows/ci.yaml).
-#   - check_in_cluster looks for a database command in every word after
+#   - check_in_cluster looks for a database client in every word after
 #     `oc exec|rsh|debug`, the pod or workload included, so
-#     `oc exec deploy/mysql -- df -h` is blocked too. That false positive is
-#     inherited from website_backend3 and fails safe; until both copies are
-#     fixed, name the pod instead (`oc exec pod/mysql-<suffix> -- ...`).
-#   - Where ADR 0024 leaves room, it is stricter, exactly as website_backend3's
-#     copy is:
+#     `oc exec deploy/mysql -- df -h` is blocked too. That false positive
+#     fails safe; name the pod instead (`oc exec pod/mysql-<suffix> -- ...`).
+#   - It is deliberately stricter than the programs it checks:
 #       - check 2 checks every explicit target source that is present (inline
-#         variables, options and connection strings), not only the first,
-#         because psql prefers -h over PGHOST; an environment variable is
-#         checked unless the command does not use it (see db_targets), so a
-#         local inline PGHOST cannot hide a remote DATABASE_URL;
-#       - it also reads PGHOSTADDR (libpq and sqlx use it) and treats a
-#         PGSERVICE or service= entry as not checkable;
+#         variables, options and connection strings), not only the first one
+#         the client would use (psql prefers -h over PGHOST), so a local value
+#         can never hide a remote one; an environment variable is checked
+#         unless the client does not use it (see db_targets);
+#       - it also reads PGHOSTADDR (libpq connects to it even when a host
+#         name is given) and treats a PGSERVICE or service= entry as not
+#         checkable;
 #       - a true --force on oc delete or oc replace is blocked even without
 #         --grace-period=0, because kubectl then sets the grace period to 0;
 #       - an ApplicationSet counts like an Application, because deleting one
-#         deletes its Applications.
+#         deletes its Applications;
+#       - every word after `artisan` that is not an option counts as its
+#         command name, so `php artisan help migrate:fresh` is blocked too.
 #   - It reads DATABASE_URL, PGHOST, PGHOSTADDR, PGSERVICE and MYSQL_HOST
 #     from its own environment (the one Claude Code passes to hooks) for the
 #     "environment" target source of check 2. That is deliberate: the hook is
@@ -130,7 +125,7 @@ block() {
 trap 'block "Blocked by .claude/hooks/guard-bash.sh: the hook failed unexpectedly (line $LINENO), so the command was blocked to be safe. Run \"bash scripts/tests/test-guard-bash.sh\" from the repository root to find the fault."' ERR
 
 if ! command -v jq >/dev/null 2>&1; then
-  block "Blocked by .claude/hooks/guard-bash.sh: jq is not installed or not on PATH, and this guardrail hook needs it to read the command, so every Bash command is blocked until it is available (fail closed, ADR 0024 section 4). Install jq (for example 'sudo dnf install jq', 'sudo apt-get install jq' or 'brew install jq') and retry."
+  block "Blocked by .claude/hooks/guard-bash.sh: jq is not installed or not on PATH, and this guardrail hook needs it to read the command, so every Bash command is blocked until it is available (fail closed). Install jq (for example 'sudo dnf install jq', 'sudo apt-get install jq' or 'brew install jq') and retry."
 fi
 
 # The policy, as a jq program. It reads the hook input and prints either
@@ -139,12 +134,12 @@ IFS= read -r -d '' GUARD_JQ <<'JQ' || true
 # ------------------------------------------------------------------ messages
 
 # Formats a block reason.
-#   $check - the check number of ADR 0024 section 4 (1 or 2);
+#   $check - the check number from this file's header (1 or 2);
 #   $text  - what was refused and what to do instead.
 def msg($check; $text):
-  "Blocked by .claude/hooks/guard-bash.sh (ADR 0024 section 4, check \($check)): \($text)\n"
-  + "The guardrails are summarised in CLAUDE.md and decided in website_backend3's ADR 0024, section 4: "
-  + "https://github.com/Verseghy/website_backend3/blob/master/docs/design/adr/0024-ai-maintainability-instruction-files-the-loco-skill-guardrai.md";
+  "Blocked by .claude/hooks/guard-bash.sh (check \($check)): \($text)\n"
+  + "CLAUDE.md, section \"Guardrails\", lists what this hook blocks, what it does not cover and why; "
+  + "do not work around a block.";
 
 # Advice for a block that may be a false positive caused by text that only
 # mentions a command, for example in a commit message.
@@ -228,8 +223,8 @@ def strip_heredocs:
 
 # Cuts a string at every $sep that is outside quotes, as a stream of pieces.
 # A piece ends only where the counts of ' and " so far are both even. That
-# parity test ignores escaped quotes, so it can keep more text together than
-# needed, which costs time but never correctness.
+# even-count test ignores escaped quotes, so it can keep more text together
+# than needed, which costs time but never correctness.
 #   $sep - a command separator: "\n", ";", "&&", "||" or "|".
 def split_outside_quotes($sep):
   reduce (split($sep)[]) as $p ({out: [], cur: [], sq: 0, dq: 0};
@@ -368,7 +363,8 @@ def check_kubectl:
   | first(range(0; $s | length) as $i
       | select(($s[$i] | basename) == "kubectl")
       | select(($s[:$i] | all(.[]; is_assignment)) or ($s[:$i] | any(.[]; IN(runner_words[]))))
-      | msg(1; "this command runs kubectl. Verseghy repositories use oc, never kubectl. "
+      | msg(1; "this command runs kubectl. The clusters this repository deploys to (the OpenShift hub and the MicroShift edge) "
+               + "are run with oc, never kubectl, and these guardrails check oc command lines. "
                + "Run the same command with oc instead, for example `oc get pods -n <namespace>`."
                + text_only_hint));
 
@@ -434,9 +430,15 @@ def check_oc_delete:
       | select(($e.key == 0 or ($e.value | contains("/"))) and ($e.value | names_protected_kind))
       | $e.value as $arg
       | msg(1; "`oc delete` names '\($arg)', a PersistentVolumeClaim, PersistentVolume or Argo CD Application (or ApplicationSet). "
-               + "Deleting one can destroy data, and deleting an Application deletes every resource it manages, so agents never do it. "
-               + "A human does it after checking that the volume's reclaim policy is Retain and that a verified backup exists. Stop and ask the maintainer."));
+               + "A volume whose reclaim policy is Delete takes its data with it, and the Applications here carry the "
+               + "resources-finalizer.argocd.argoproj.io finalizer, so deleting one deletes every resource it manages; agents never do it. "
+               + "To change what is deployed, change the manifests under verseghy-website/ or microshift-infra/ in a pull request. "
+               + "A deletion itself is done by a human, after checking that the volume's reclaim policy is Retain and that a verified backup exists. "
+               + "Stop and ask the maintainer."));
 
+# The data-wiping `db` subcommands of an application CLI, after any program
+# name. `-e` / `--environment` (the environment option of Loco-style CLIs)
+# takes a separate value, so it is skipped when looking for the subcommand.
 def check_db_wipe:
   . as $s
   | first(range(0; $s | length) as $i
@@ -447,22 +449,50 @@ def check_db_wipe:
                or ($sub == "seed"
                    and any($rest[]; . == "--reset" or startswith("--reset=") or test("^-[A-Za-z]*r[A-Za-z]*$"))))
       | (if $sub == "seed" then "db seed --reset" else "db \($sub)" end) as $what
-      | msg(1; "`\($what)` wipes or rolls back database data. Loco's db reset, db down, db truncate and db seed --reset are blocked "
-               + "in every form: cargo loco, the app binary backend3-cli, and inside oc exec, oc rsh or oc debug. "
-               + "Agents never run them from website_k8s: a schema change is a new forward migration in website_backend3, "
-               + "tested there against its throwaway local database, and the databases in the cluster are operated by a human. "
+      | msg(1; "`\($what)` wipes or rolls back an application's database. The data-wiping db subcommands of an application CLI "
+               + "(db reset, db down, db truncate and db seed --reset) are blocked in every form, also inside oc exec, oc rsh or oc debug. "
+               + "Agents never run them from website_k8s: the databases this repository deploys run in the clusters and are operated by a human, "
+               + "and a schema change ships as a migration in the application's own repository. "
                + "Stop and ask the maintainer."
                + text_only_hint));
 
-def check_sea_orm_wipe:
+# Whether a word names one of Laravel's data-wiping artisan commands, in full
+# or abbreviated. Laravel's console is Symfony's, and Symfony's
+# Application::find (symfony/console 5.3, the version website_backend locks)
+# runs a command from any unambiguous abbreviation: each part of the name
+# before and after the `:` is a prefix of the command's part, matched without
+# regard to case (`m:fr` and `:fresh` run migrate:fresh). So a word with
+# exactly one `:` counts when its parts are prefixes of migrate and of fresh,
+# refresh, reset or rollback, or of db and wipe. An ambiguous abbreviation
+# such as `m:r` is blocked too; Laravel would refuse it anyway.
+def is_artisan_wipe:
+  (ascii_downcase | split(":")) as $p
+  | if ($p | length) != 2 or $p[1] == "" then false
+    else (("migrate" | startswith($p[0])) and any("fresh", "refresh", "reset", "rollback"; startswith($p[1])))
+         or (("db" | startswith($p[0])) and ("wipe" | startswith($p[1])))
+    end;
+
+# Laravel's data-wiping artisan commands: migrate:fresh and db:wipe drop every
+# table, migrate:refresh, migrate:reset and migrate:rollback roll migrations
+# back. The program is matched by name (`php artisan`, `./artisan`,
+# `php /opt/app-root/src/artisan`), and every later word that is not an option
+# counts as its command name, because options such as `--env production` may
+# stand before it.
+def check_artisan_wipe:
   . as $s
   | first(range(0; $s | length) as $i
-      | select(($s[$i] | basename) == "sea-orm-cli")
-      | ($s[$i + 1:] | positionals(["-d", "--migration-dir", "-s", "--database-schema", "-u", "--database-url"])) as $p
-      | select(($p[0] // "") == "migrate" and (($p[1] // "") | IN("fresh", "refresh", "reset", "down")))
-      | msg(1; "`sea-orm-cli migrate \($p[1])` drops tables or rolls back migrations. "
-               + "A schema change is a new forward migration in website_backend3, applied there with `cargo loco db migrate` "
-               + "against its local database; the databases in the cluster are operated by a human. Stop and ask the maintainer."));
+      | select(($s[$i] | basename) == "artisan")
+      | $s[$i + 1:][]
+      | select((startswith("-") | not) and is_artisan_wipe)
+      | . as $what
+      | msg(1; "`artisan \($what)` drops or rolls back the tables of a Laravel application's database: "
+               + "the backend Deployment (verseghy-website/backend/) is a Laravel app that writes to the edge MySQL. "
+               + "Laravel's migrate:fresh, migrate:refresh, migrate:reset, migrate:rollback and db:wipe are blocked in every form, "
+               + "abbreviated too, also inside oc exec, oc rsh or oc debug. "
+               + "Agents never run them from website_k8s: the databases this repository deploys are operated by a human, "
+               + "and a schema change ships as a migration in the application's own repository. "
+               + "Read the backend's state with `oc get`, `oc describe` or `oc logs` instead, or stop and ask the maintainer."
+               + text_only_hint));
 
 # ------------------------------------------------------------------ check 2
 
@@ -551,19 +581,9 @@ def dbname_option_targets:
   | select(test("[$`]"))
   | {from: "the -d/--dbname option", host: ., local: false};
 
-# Targets of sea-orm-cli's -u / --database-url option.
-def database_url_option_targets:
-  . as $a
-  | range(0; $a | length) as $i
-  | $a[$i] as $w
-  | if $w == "-u" or $w == "--database-url" then ($a[$i + 1] // empty) | uri_targets("the \($w) option")
-    elif ($w | startswith("--database-url=")) then $w[15:] | uri_targets("the --database-url option")
-    elif ($w | test("^-u.")) then $w[2:] | uri_targets("the -u option")
-    else empty end;
-
-# Targets written into the arguments: connection URIs (in -d, --dbname, -u,
-# --database-url or positional) and host= / hostaddr= / service= connection
-# keys. libpq allows spaces around the = of a key/value connection string.
+# Targets written into the arguments: connection URIs (in -d, --dbname or
+# positional) and host= / hostaddr= / service= connection keys. libpq allows
+# spaces around the = of a key/value connection string.
 def connection_string_targets:
   .[]
   | (scan("(?:postgres|postgresql|mysql|mariadb)://[^\\s'\"]*") | uri_targets("a connection URI")),
@@ -571,55 +591,39 @@ def connection_string_targets:
     (scan("(?:^|[\\s?&])service\\s*=\\s*('[^']*'|[^\\s&']*)") | .[0]
      | {from: "a service= connection key", host: "service \(.)", local: false});
 
-# Every database-touching command in a segment, as {kind, name, args}.
-# ADR 0024 section 4 ("Scope of the guardrails") leaves the cargo commands out
-# of this list in website_k8s; website_backend3's copy also lists cargo loco,
-# cargo run, cargo test and cargo nextest.
+# Every database client in a segment, as {kind, name, args}. Only these three
+# are known; CLAUDE.md lists the clients that are not (for example mariadb).
 def db_commands:
   . as $s
   | range(0; $s | length) as $i
   | ($s[$i] | basename) as $b
-  | if ($b | IN("psql", "pg_restore", "mysql", "sea-orm-cli")) then {kind: $b, name: $b, args: $s[$i + 1:]}
+  | if ($b | IN("psql", "pg_restore", "mysql")) then {kind: $b, name: $b, args: $s[$i + 1:]}
     else empty end;
 
-# Every database target of one command (sources 1 to 4 of ADR 0024 section 4,
-# check 2). Explicit sources are always checked: every inline variable the
-# command kind reads, every option and every connection string, even where the
-# program would prefer another one, so a local value can never hide a remote
-# one. The environment's value of a variable is checked unless the command
-# does not use it:
+# Every database target of one client command. Explicit sources are always
+# checked: every inline variable the client kind reads, every option and every
+# connection string, even where the client would prefer another one, so a
+# local value can never hide a remote one. The environment's value of a
+# variable is checked unless the client does not use it:
 #   - an inline value of the same variable replaces it;
-#   - sea-orm-cli without -u connects to DATABASE_URL; sqlx falls back to
-#     PGHOSTADDR or PGHOST only when that URI names no host, or when no URI
-#     is known (a remote PGHOST is then refused to be safe);
 #   - psql and pg_restore use PGHOST unless -h, a host= key or a URI host is
 #     given, but libpq connects to PGHOSTADDR even then, and a PGSERVICE entry
 #     cannot be checked at all; they do not read DATABASE_URL, which is
-#     checked only when nothing explicit is present;
+#     checked only when nothing explicit is present (it is often passed on as
+#     `psql "$DATABASE_URL"`, which cannot be read from the text);
 #   - mysql uses MYSQL_HOST unless -h or a URI host is given; the PostgreSQL
 #     variables are checked only when nothing explicit is present.
 #   $c    - the command, from db_commands;
 #   $vars - the inline values of the watched variables, by name.
 def db_targets($c; $vars):
   $c.kind as $k
-  | [ if $k == "sea-orm-cli" then ($c.args | database_url_option_targets)
-      else ($c.args | host_option_targets, dbname_option_targets, connection_string_targets) end ] as $options
+  | [ $c.args | host_option_targets, dbname_option_targets, connection_string_targets ] as $options
   | [ inline_var_targets($vars;
         ["DATABASE_URL", "PGHOST", "PGHOSTADDR"]
-        + (if $k == "mysql" then ["MYSQL_HOST"] else [] end)
-        + (if $k == "psql" or $k == "pg_restore" then ["PGSERVICE"] else [] end)) ] as $inline
+        + (if $k == "mysql" then ["MYSQL_HOST"] else ["PGSERVICE"] end)) ] as $inline
   | ((($options | length) + ($inline | length)) > 0) as $explicit
   | $options[], $inline[],
-    if $k == "sea-orm-cli" then
-      # The URI the command connects to: -u, else DATABASE_URL.
-      (if ($options | length) > 0 then $options
-       elif $vars.DATABASE_URL != null then [$vars.DATABASE_URL | uri_targets("")]
-       else [env_var_targets($vars; "DATABASE_URL")] end) as $uri
-      | (if ($options | length) == 0 then $uri[] else empty end
-         | select($vars.DATABASE_URL == null)),
-        (if any($uri[]; .host != "") then empty
-         else env_var_targets($vars; "PGHOSTADDR"), env_var_targets($vars; "PGHOST") end)
-    elif $k == "mysql" then
+    if $k == "mysql" then
       (if any($options[]; .host != "") then empty else env_var_targets($vars; "MYSQL_HOST") end),
       (if $explicit then empty
        else env_var_targets($vars; "DATABASE_URL"), env_var_targets($vars; "PGHOSTADDR"),
@@ -633,7 +637,7 @@ def db_targets($c; $vars):
 
 def local_db_advice:
   " Agents only touch local databases: localhost, 127.0.0.1, ::1 or a Unix socket. "
-  + "The databases in the cluster and every other database are operated by a human; stop and ask the maintainer.";
+  + "The databases this repository deploys and every other database are operated by a human; stop and ask the maintainer.";
 
 def check_in_cluster:
   [.[] | splits("\\s+") | select(length > 0)] as $f
@@ -644,7 +648,10 @@ def check_in_cluster:
       | select($verb | IN("exec", "rsh", "debug"))
       | ($rest | first(db_commands)) as $c
       | msg(2; "`\($c.name)` runs inside the cluster through `oc \($verb)`, so its database is not local, whatever its options say. "
-               + "Agents never run database commands in the cluster; stop and ask the maintainer."));
+               + "Agents never run database clients in the clusters: the databases this repository deploys are operated by a human. "
+               + "Read the workload's state with `oc get`, `oc describe` or `oc logs` instead, or stop and ask the maintainer. "
+               + "If `\($c.name)` is only the name of the pod or workload (`oc exec deploy/mysql -- df -h`) and the command runs no database client, "
+               + "name the pod instead: `oc get pods -l app=<name> -o name`, then `oc exec pod/<name>-<suffix> -- <command>`."));
 
 #   $vars - the inline values of the watched variables, by name.
 def check_db_target($vars):
@@ -656,10 +663,8 @@ def check_db_target($vars):
 # ------------------------------------------------------------------ verdict
 
 # A command can only be blocked if it contains one of these words, so every
-# other command is allowed without being parsed. `cargo` is not one here,
-# because no cargo command is checked in website_k8s except through check 1's
-# `db` subcommands, which `\bdb\b` already catches.
-def trigger_re: "kubectl|grace-period|\\boc\\b|\\bdb\\b|psql|pg_restore|mysql|sea-orm-cli";
+# other command is allowed without being parsed.
+def trigger_re: "kubectl|grace-period|\\boc\\b|\\bdb\\b|artisan|psql|pg_restore|mysql";
 
 # The variables check 2 reads.
 def watched_var_re: "DATABASE_URL|PGHOST|PGSERVICE|MYSQL_HOST";
@@ -693,7 +698,7 @@ def verdict:
       [$cmd | gsub("\\\\\\n"; "") | (if test("<<") then strip_heredocs else . end)
        | chunks | select(may_matter) | lex(0)[]] as $segs
       | (first($segs | scoped_segments[] | .vars as $vars | .seg
-               | (check_kubectl, check_force_delete, check_oc_delete, check_db_wipe, check_sea_orm_wipe,
+               | (check_kubectl, check_force_delete, check_oc_delete, check_db_wipe, check_artisan_wipe,
                   check_in_cluster, check_db_target($vars))) // null) as $why
       | if $why == null then "allow" else "block\n\($why)" end
     end;

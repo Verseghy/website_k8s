@@ -7,7 +7,7 @@
   "tool_name": "Write",
   "tool_input": {
     "file_path": "notes.md",
-    "content": "kubectl delete pvc data && cargo loco db reset"
+    "content": "kubectl delete pvc data && oc delete pod web-0 --force --grace-period=0"
   },
   "tool_use_id": "toolu_test"
 }

@@ -1,6 +1,5 @@
 .idea
 
-# Personal Claude Code settings (website_backend3 ADR 0024 section 4): they may
-# add rules for one person and are never committed; .claude/settings.json is
-# the shared file.
+# Personal Claude Code settings: they may add rules for one person and are
+# never committed; .claude/settings.json is the shared file (see CLAUDE.md).
 /.claude/settings.local.json
