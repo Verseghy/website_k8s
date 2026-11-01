@@ -11,6 +11,15 @@ data:
       baseUrl: https://rhdh-verseghy.apps.okd4.home.zoltanszepesi.com
       cors:
         origin: https://rhdh-verseghy.apps.okd4.home.zoltanszepesi.com
+      # URLs outside the integrations below that the catalog may read: the
+      # OpenAPI document of backend3-api (catalog/apis.yaml). A path entry
+      # matches every path that starts with it, and backend3 serves nothing
+      # else under this one, so nothing else on that host is readable.
+      reading:
+        allow:
+          - host: backend3.microshift.verseghy-gimnazium.net
+            paths:
+              - /api/v1/openapi.json
     integrations:
       github:
         - host: github.com

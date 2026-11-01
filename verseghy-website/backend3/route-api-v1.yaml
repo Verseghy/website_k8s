@@ -1,0 +1,28 @@
+# backend3's public read API and its OpenAPI document
+# (/api/v1/openapi.json), with higher router limits than the admin, for the
+# public site's browsers and its server-side rendering. The server-side
+# rendering must never be throttled: before the public site moves to this
+# API, check these limits against its measured request rate. See route.yaml
+# for the limits and the forwarded headers.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: backend3-api-v1
+  annotations:
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "100"
+    haproxy.router.openshift.io/rate-limit-connections.rate-tcp: "100"
+    haproxy.router.openshift.io/rate-limit-connections.rate-http: "1000"
+spec:
+  host: backend3.microshift.verseghy-gimnazium.net
+  path: /api/v1
+  to:
+    kind: Service
+    name: backend3
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

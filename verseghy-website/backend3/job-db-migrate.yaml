@@ -1,0 +1,132 @@
+# backend3's database migrations, as an Argo CD PreSync hook: on every sync of
+# this Application, Argo CD runs `backend3-cli db migrate` first and applies
+# the other manifests only when it has succeeded. So a change that brings a
+# migration, an image bump included, migrates the schema before any new pod
+# starts. If the migration fails, the sync stops and the running pods keep
+# serving on the old schema; the failed Job and its pod stay for diagnosis.
+# Until the rollout has finished, the old pods serve on the migrated schema,
+# so a migration must keep the previous image working.
+#
+# Argo CD deletes the Job of the previous sync before it creates this one
+# (BeforeHookCreation), so the fixed name does not clash. The Job uses the
+# same image (one images entry in kustomization.yaml) and the same
+# environment as the Deployment. `db migrate` applies only the migrations that
+# the database has not recorded yet, so a retry after a transient error, such
+# as the database restarting, is safe.
+#
+# When it runs: this Application syncs automatically, without self-heal. A
+# sync, and with it this hook, follows a new commit on master while the
+# Application differs from Git (a change to this directory, or drift in the
+# cluster), and every manual sync. A selective sync of single resources runs
+# no hooks, and so no migration.
+#
+# A failed sync is not tried again: Argo CD's automatic sync does not retry a
+# commit whose sync failed, and nothing on the edge reports it. The Job's own
+# retries (backoffLimit below) ride out a short database outage, such as
+# PostgreSQL restarting for its own image bump. After any other failure, fix
+# the cause, then sync the Application by hand or merge a new commit.
+#
+# backend3 only moves forward. An older image refuses a database that has
+# recorded a migration the image does not contain, so reverting the image tag
+# past a migration fails this hook, the sync stops, and the pods stay on the
+# newer image. To roll back anyway, and only when the older image is known to
+# work on the newer schema, sync the Deployment and the CronJobs alone (a
+# selective sync, which runs no hooks).
+#
+# While backend3's database is read-only (a reverse move after the cut-over)
+# this Job fails, and with it every sync. Hold the website_k8s PRs, Image
+# Updater's bump PRs included, and sync nothing by hand until the database is
+# writable again.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backend3-db-migrate
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  # Six tries. Kubernetes waits 10, 20, 40, 80 and 160 s between them, so the
+  # tries span about five minutes, meant to outlast a PostgreSQL restart (its
+  # Deployment stops the old pod before it starts the new one).
+  backoffLimit: 5
+  # Migrations take under a second on the current schema; the deadline also
+  # covers pulling a new image on the node and the waits between the tries,
+  # and stops a hung run.
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      # Not app: backend3, so the Service never sends traffic to this pod.
+      labels:
+        app: backend3-db-migrate
+      annotations:
+        openshift.io/required-scc: restricted-v2
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend3
+          image: ghcr.io/verseghy/website_backend3
+          imagePullPolicy: IfNotPresent
+          args:
+            - db
+            - migrate
+          # The same environment as deployment.yaml (see its header).
+          env:
+            - name: LOCO_ENV
+              value: production
+            - name: HOST
+              value: https://backend3.microshift.verseghy-gimnazium.net
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: postgres-website_backend3-password
+            - name: DATABASE_URL
+              value: postgres://website_backend3:$(DB_PASSWORD)@postgres.verseghy.svc.cluster.local:5432/verseghy
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backend3-jwt-secret
+            - name: TOTP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backend3-totp-key
+            - name: CONTENT_MAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backend3-content-mac-key
+            - name: IMPORT_SOURCE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: import-source-database-url
+            - name: PUBLIC_SITE_URL
+              value: https://verseghy-gimnazium.net
+            - name: MEDIA_PUBLIC_BASE_URL
+              value: https://backend.microshift.verseghy-gimnazium.net/storage
+            - name: DB_AUTO_MIGRATE
+              value: "false"
+            - name: PNG_PRESET_THRESHOLD_PIXELS
+              value: "6000000"
+          # Measured peak: 10 MiB.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true

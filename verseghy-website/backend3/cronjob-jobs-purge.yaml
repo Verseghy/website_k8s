@@ -1,0 +1,117 @@
+# Job queue housekeeping, every week: `jobs purge` deletes the failed and
+# cancelled jobs older than 30 days from backend3's job queue table, after
+# they have stayed visible for diagnosis that long.
+#
+# --status is required: without it, this Loco release's `jobs purge` also
+# deletes queued and completed jobs older than --max-age. A queued job that
+# old is a fault to look into, not something to delete quietly.
+#
+# The image entrypoint is kept and only the arguments are set. The image and
+# the environment are the Deployment's (see the header of deployment.yaml),
+# because the command loads the same configuration.
+#
+# Sundays at 01:45 Budapest time, outside the hour that a daylight saving
+# change skips or repeats (02:00-03:00), and after the nightly tidy.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backend3-jobs-purge
+spec:
+  schedule: "45 1 * * 0"
+  timeZone: Europe/Budapest
+  # One run at a time; a run missed by more than ten minutes is skipped, not
+  # piled up.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # The command is idempotent, so a retry is safe.
+      backoffLimit: 2
+      # A run takes under a second, but the deadline counts from the start of
+      # the Job: it also covers scheduling the pod, pulling the image on the
+      # node and the retries, so twice the run time would stop every run. It
+      # stops a hung run.
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          # Not app: backend3, so the Service never sends traffic to this pod.
+          labels:
+            app: backend3-jobs-purge
+          annotations:
+            openshift.io/required-scc: restricted-v2
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backend3
+              image: ghcr.io/verseghy/website_backend3
+              imagePullPolicy: IfNotPresent
+              args:
+                - jobs
+                - purge
+                - --max-age
+                - "30"
+                - --status
+                - failed,cancelled
+              # The same environment as deployment.yaml (see its header).
+              env:
+                - name: LOCO_ENV
+                  value: production
+                - name: HOST
+                  value: https://backend3.microshift.verseghy-gimnazium.net
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: postgres-website_backend3-password
+                - name: DATABASE_URL
+                  value: postgres://website_backend3:$(DB_PASSWORD)@postgres.verseghy.svc.cluster.local:5432/verseghy
+                - name: JWT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: backend3-jwt-secret
+                - name: TOTP_ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: backend3-totp-key
+                - name: CONTENT_MAC_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: backend3-content-mac-key
+                - name: IMPORT_SOURCE_DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: import-source-database-url
+                - name: PUBLIC_SITE_URL
+                  value: https://verseghy-gimnazium.net
+                - name: MEDIA_PUBLIC_BASE_URL
+                  value: https://backend.microshift.verseghy-gimnazium.net/storage
+                - name: DB_AUTO_MIGRATE
+                  value: "false"
+                - name: PNG_PRESET_THRESHOLD_PIXELS
+                  value: "6000000"
+              # Measured peak: 3 MiB.
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 500m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true

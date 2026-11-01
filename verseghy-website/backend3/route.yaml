@@ -1,0 +1,48 @@
+# backend3's host: the admin UI (/admin), the health routes, the redirect
+# from / and robots.txt. /api/admin and /api/v1 have Routes of their own on
+# the same host (route-api-admin.yaml, route-api-v1.yaml), because the router
+# keeps its limits per Route; the longest matching path wins. The wildcard
+# certificate that the router serves by default covers the host.
+#
+# Router limits, per client address and per Route, cap floods from one
+# address before they reach the small node; they do not shape normal use,
+# and sign-in throttling belongs in backend3 itself. The router rejects a
+# connection when the address already has at least `concurrent-tcp` open
+# connections, has opened at least `rate-tcp` new ones in the last 3 seconds,
+# or has sent at least `rate-http` requests in the last 10 seconds. Too low a
+# value rejects real users, for example a classroom behind one school
+# address; tune the values from rejected connections in production.
+#
+# The annotation names and values follow the OpenShift Container Platform 4.20
+# documentation (Ingress and load balancing, "Route-specific annotations" and
+# "Configure route timeouts"). The MicroShift 4.20 documentation does not
+# document these annotations, and MicroShift 4.20 runs the router image of
+# the OpenShift 4.20 release; the 3 and 10 second windows come from that
+# router's configuration template.
+#
+# haproxy.router.openshift.io/set-forwarded-headers stays unset (append), or
+# may be set to replace, never to if-none or never, on all three Routes:
+# backend3 is to take the client address that it logs and throttles from the
+# last X-Forwarded-For value, the one the router appends, and with if-none or
+# never a client could choose that value itself.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: backend3
+  annotations:
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "40"
+    haproxy.router.openshift.io/rate-limit-connections.rate-tcp: "40"
+    haproxy.router.openshift.io/rate-limit-connections.rate-http: "300"
+spec:
+  host: backend3.microshift.verseghy-gimnazium.net
+  to:
+    kind: Service
+    name: backend3
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

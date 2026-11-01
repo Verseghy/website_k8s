@@ -1,0 +1,19 @@
+# The Routes target the http port only. The metrics port serves /metrics
+# inside the cluster, for the hub's monitoring to scrape later; no Route
+# targets it, so the metrics are never public.
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend3
+spec:
+  selector:
+    app: backend3
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http
+    - name: metrics
+      protocol: TCP
+      port: 9464
+      targetPort: metrics
