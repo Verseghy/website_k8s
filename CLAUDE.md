@@ -134,24 +134,40 @@ if one blocks legitimate work, stop and ask the maintainer.
    Applications, namespaces and projects; `argocd app delete`,
    `argocd app delete-resource`, `argocd app confirm-deletion` and
    `argocd appset delete`; `oc patch` and `argocd app patch-resource` of
-   finalizers or to a `Delete` or `Recycle` reclaim policy; Argo CD's
-   `deletion-approved` annotation in an `argocd`, `oc patch` or
-   `oc annotate` command; `--force --grace-period=0`; and `kubectl`. A Redis
-   client in a cluster has no deny rule, as the database clients have none;
-   the hook checks it.
+   finalizers or to a `Delete` or `Recycle` reclaim policy; `argocd app patch`
+   of finalizers; Argo CD's `deletion-approved` annotation in an `argocd`,
+   `oc patch` or `oc annotate` command; `--force --grace-period=0`; and
+   `kubectl`. A Redis client in a cluster or in a pod you start, and an
+   inline manifest, have no deny rule, as the database clients have none;
+   the hook checks them.
 2. **The hook** `.claude/hooks/guard-bash.sh` checks every Bash command,
    including `sh -c` wrappers, here-strings, heredocs and piped `echo` or
    `printf` scripts that a shell reads, `echo` or `printf` output that the
    shell runs from a substitution (`bash <(echo ...)`, `eval "$(echo ...)"`,
    `"$(echo oc)" delete ...`), text that `xargs` or `parallel` pass on as
-   arguments (`echo confirm-deletion <app> | xargs argocd app`), other
-   spellings (`$'...'` quoting included), options before the `oc` verb
-   (`oc --wait ns delete web` runs `oc delete ns web`) and commands run
-   through `oc exec`, `oc rsh` or `oc debug`. It blocks `kubectl`; force
-   deletion (`--force` on `oc delete` or `oc replace`, or with
-   `--grace-period=0`); `oc delete` of a PVC, PV, Application, ApplicationSet,
-   namespace or project, also when its arguments come from an `oc get` of one
-   through `$(...)`, `xargs` or `-f -`, and every `oc delete --raw`;
+   arguments (`echo confirm-deletion <app> | xargs argocd app`), also from a
+   heredoc (`xargs oc <<'EOF'`) or a here-string that `cat` passes on
+   (`cat <<< '...' | xargs oc`), other spellings (`$'...'` quoting
+   included), options before the `oc` verb (`oc --wait ns delete web` runs
+   `oc delete ns web`) and commands run through `oc exec`, `oc rsh` or
+   `oc debug`. It reads a heredoc on every line of a command, also after a
+   `<` (`oc apply -f <(cat <<'EOF'`), beside another one, inside the scripts
+   that a shell runs and when the pipeline goes on after its body; a `<<`
+   that may stand inside quotes is read both as a heredoc and as text, so
+   it cannot hide the commands after it. A heredoc's delimiter is the word
+   after `<<` as bash reads it, so `<<\EOF`, `<<'@@'`, `<<E"O"F` and
+   `<<'END OF'` count as `<<'EOF'` does; a heredoc whose delimiter line
+   never comes runs to the end of the command, as in bash; and one whose
+   delimiter the hook cannot know (`<<$(...)`, a quote that does not close
+   on the line) makes the rest of the command count both as its body and
+   as commands. A `<<` in arithmetic (`((n<<2))`, `$((1<<2))`) or in a
+   parameter expansion (`${x//<</y}`) is no heredoc and hides nothing. What
+   a subshell or brace group prints (`{ echo ...; } | sh`) and
+   `< <(echo ...)` count as piped text. It blocks `kubectl`; force deletion
+   (`--force` on `oc delete` or `oc replace`, or with `--grace-period=0`);
+   `oc delete` of a PVC, PV, Application, ApplicationSet, namespace or
+   project, also when its arguments come from an `oc get` of one through
+   `$(...)`, `xargs` or `-f -`, and every `oc delete --raw`;
    `argocd app delete`, `argocd app delete-resource`,
    `argocd app confirm-deletion` (which approves the deletions that a
    `Prune=confirm` or `Delete=confirm` sync option holds back) and
@@ -162,10 +178,14 @@ if one blocks legitimate work, stop and ask the maintainer.
    removes a whole object or its metadata, or that holds a YAML binary tag
    (`!!binary`), a tag with a `%` escape or a `%TAG` directive, behind which
    kubectl decodes text that the hook does not read (setting `Retain` is not
-   blocked);
-   an `oc annotate`, `oc patch` or `argocd` command that names Argo CD's
-   `argocd.argoproj.io/deletion-approved` annotation, which approves the
-   same held-back deletions; the data-wiping commands of application
+   blocked); an `argocd app patch` that changes an Application's finalizers
+   the same way, additions included, because they decide what deleting the
+   Application takes along; an `oc annotate`, `oc patch` or `argocd`
+   command that names Argo CD's `argocd.argoproj.io/deletion-approved`
+   annotation, which approves the same held-back deletions, and an inline
+   manifest that names it (a heredoc, a here-string, piped `echo` or
+   `printf` text or `<(echo ...)` that `oc apply`, `oc create` or
+   `oc replace` reads); the data-wiping commands of application
    CLIs in every form: Laravel's `artisan migrate:fresh`, `migrate:refresh`,
    `migrate:reset`, `migrate:rollback` and `db:wipe` (also abbreviated, as in
    `m:fr`) and the `db reset`, `db down`, `db truncate` and `db seed --reset`
@@ -183,21 +203,32 @@ if one blocks legitimate work, stop and ask the maintainer.
    `sea-orm-cli` (or `sea`) aimed at a database that is not local (localhost,
    127.0.0.1, ::1 or a Unix socket), or run inside a cluster (in the command
    part of `oc exec`, `oc rsh` or `oc debug`, or in a script piped or fed to
-   them); and `redis-cli` and `redis-benchmark` (which runs any command it is
-   given) run inside a cluster the same way, whatever their command
-   (`redis-cli ping` too). A Redis client on this host is not checked: the
-   clusters' Redis answers here only through a port-forward, which is
-   blocked. Its message says what to do instead.
+   them); and the Redis clients `redis-cli`, `redis-benchmark` (which runs
+   any command it is given), `valkey-cli` and `keydb-cli` run inside a
+   cluster the same way, whatever their command (`redis-cli ping` too), or
+   as the command of a pod you start: in the command part, the
+   `--overrides` JSON and the stdin text of `oc run`, in the command part of
+   `oc create job`, `cronjob`, `deployment` or `deploymentconfig`, or named
+   in an inline manifest that `oc apply`, `oc create` or `oc replace` reads.
+   A Redis client on this host is not checked: the clusters' Redis answers
+   here only through a port-forward, which is blocked. Its message says what
+   to do instead.
 
    For a client run inside a cluster, the Redis clients included, the hook
    reads only the command that runs in the pod: the words after `--` for
-   `oc exec` and `oc debug`, and for `oc rsh` the words after the pod and the
-   program its `--shell` names.
-   A pod, container or namespace whose name looks like a client does not
-   count, and neither does a data path, so
-   `oc exec -n verseghy deploy/mysql -- df -h` and
-   `oc rsh deploy/mysql ls -l /var/lib/mysql` are allowed, while
-   `oc exec postgres-0 -- sh -c 'cd /tmp;psql'` is blocked.
+   `oc exec` and `oc debug`, for `oc rsh` the words after the pod and the
+   program its `--shell` names, and for `oc run` and the `oc create`
+   subcommands above the words after the pod's name, before `--` and after
+   it (`oc run tmp --image=redis --command redis-cli -- -h <service>` runs
+   `redis-cli`).
+   A pod, container, namespace or image whose name looks like a client does
+   not count, and neither does a data path, so
+   `oc exec -n verseghy deploy/mysql -- df -h`,
+   `oc rsh deploy/mysql ls -l /var/lib/mysql` and
+   `oc run redis-cli --image=redis -- redis-server` are allowed, while
+   `oc exec postgres-0 -- sh -c 'cd /tmp;psql'` is blocked. A database client
+   in a pod you start keeps its target check (`oc run ... -- psql -h
+   localhost` is allowed, `-h postgres` is not).
 
 Two standing rules come with these checks, next to the ones under "Cluster
 access": **never approve a deletion that Argo CD holds back**, in any way
@@ -231,27 +262,47 @@ review. Neither layer covers:
   (`base64 -d`), and a substitution that fills in only part of the command
   name (`o$(echo c) delete ...`) or a double-quoted one with double quotes
   inside (`"$(echo "oc")" delete ...`);
-- a heredoc that `xargs` or `parallel` read (`xargs oc <<'EOF'`), a
-  here-string that `cat` passes on through a pipe
-  (`cat <<< '...' | xargs oc`, `cat <<< '...' | oc exec -i <pod> -- sh`), and
-  a `db` subcommand that `xargs` or `parallel` pass to a program the hook
-  does not list (`echo reset | xargs app-cli db`);
-- a Redis client in a pod that the agent starts
-  (`oc run ... -- redis-cli -h <service>`, `oc create job`), Redis clients
-  other than `redis-cli` and `redis-benchmark` (`valkey-cli`, `keydb-cli`),
-  and other database clients and tools the hook does not list, in any pod, the
+- a `db` subcommand that `xargs` or `parallel` pass to a program the hook
+  does not list (`echo reset | xargs app-cli db`), and two spellings of the
+  stdin readings: a `cat` here-string inside a group whose output is piped
+  on (`{ cat <<< '...'; } | oc exec -i <pod> -- sh`), and a heredoc inside a
+  group whose closing `)` or `}` is not on the line after the body;
+- a Redis client patched into an existing pod spec (an `oc patch deploy ...`
+  that sets a container's command, `oc set probe ... -- redis-cli ...`,
+  `oc set deployment-hook ... -- redis-cli ...`), which the workload's next
+  pods then run; a pod that `oc adm must-gather --image=<image> --
+  <command>` starts; a pod started from an image whose entrypoint is a
+  Redis client, which gets only arguments
+  (`oc run tmp --image=<client image> -- -h <service> FLUSHALL`), because an
+  image's name does not count; the text that `oc attach -i` passes to a
+  container that is already running, which its main process gets on stdin
+  (`echo 'redis-cli ...' | oc attach -i <pod>` after
+  `oc run <pod> --stdin --attach=false ... -- sh`, or `FLUSHALL` sent to a
+  Redis client that runs there); a raw socket or any other program that
+  speaks the Redis protocol (`printf 'FLUSHALL\r\n' | nc ...` in a pod); and
+  other database clients and tools the hook does not list, in any pod, the
   MySQL and PostgreSQL ones included
   (`oc exec deploy/mysql -- mysqladmin -u root -f drop <database>`,
   `oc exec deploy/postgres -- dropdb <database>`), and a database served on a
   port that the port-forward check does not know;
-- the other ways to drop finalizers or replace an object: `oc replace`,
-  `oc apply` and `oc edit` (for example
-  `oc get pvc data -o json | jq 'del(.metadata.finalizers)' | oc replace -f -`),
-  `oc replace --raw`, and `argocd app patch` of an Application's own
-  finalizers;
-- Argo CD's `deletion-approved` annotation in a manifest that `oc apply`,
-  `oc create` or `oc replace` reads, from a file or inline as a heredoc or
-  piped text, or that an editor writes (`oc edit`, `argocd app edit`);
+- a database client or a data-wiping command in an inline manifest or in the
+  text that `oc run` passes to its pod on stdin, where only the Redis
+  clients and the `deletion-approved` key count (a client in the command
+  part of a new pod keeps its target check, and a wipe command there is
+  blocked);
+- the other ways to drop finalizers, replace an object or set a reclaim
+  policy: `oc replace`, `oc apply` and `oc edit`, an inline manifest
+  included (for example
+  `oc get pvc data -o json | jq 'del(.metadata.finalizers)' | oc replace -f -`,
+  or a heredoc with `finalizers: []` or
+  `persistentVolumeReclaimPolicy: Delete` for `oc apply -f -`), and
+  `oc replace --raw`;
+- Argo CD's `deletion-approved` annotation, or a Redis client, in a manifest
+  that does not stand in the command text: in a file or a kustomization
+  (`oc apply -f job.yaml`, `-k`), in another command's output, in an editor
+  (`oc edit`, `argocd app edit`), or in an Application that
+  `argocd app create -f -` or `-f <(...)` reads (with `--upsert` it can set
+  the annotation);
 - `argocd app sync --prune` or `argocd app set --auto-prune`, which delete
   what the manifests no longer hold;
 - an ssh tunnel to a database (`ssh -L 15432:<db>:5432 <host>`), which makes
@@ -269,16 +320,16 @@ The rules above still apply to all of them.
 
 The hook also blocks a little too much, which fails safe:
 
-- every `oc patch` or `argocd app patch-resource` that names finalizers is
-  blocked, additions included, because the hook cannot tell every removal
-  from an addition; adding a finalizer is a task for a human. So is every
-  strategic merge `$patch: replace`, `$patch: delete` or `$retainKeys` in
-  such a patch, wherever in the patch it stands; every `path` set to `""`,
-  `/metadata`, a YAML block scalar, an alias or a tag whose value starts on
-  the next line; every YAML alias used as a key (`*k: ...`), and text in a
-  value that looks like one; every YAML binary tag (`!!binary`), tag with a
-  `%` escape and `%TAG` directive, whatever its text decodes to; an escape
-  behind an escaped backslash
+- every `oc patch`, `argocd app patch-resource` or `argocd app patch` that
+  names finalizers is blocked, additions included, because the hook cannot
+  tell every removal from an addition; adding a finalizer is a task for a
+  human. So is every strategic merge `$patch: replace`, `$patch: delete` or
+  `$retainKeys` in such a patch, wherever in the patch it stands; every
+  `path` set to `""`, `/metadata`, a YAML block scalar, an alias or a tag
+  whose value starts on the next line; every YAML alias used as a key
+  (`*k: ...`), and text in a value that looks like one; every YAML binary
+  tag (`!!binary`), tag with a `%` escape and `%TAG` directive, whatever
+  its text decodes to; an escape behind an escaped backslash
   (`\\u0066inalizers`, which the hook reads as finalizers); and every
   `oc delete --raw`;
 - any word that names `deletion-approved` in an `oc annotate`, an `oc patch`
@@ -319,6 +370,36 @@ The hook also blocks a little too much, which fails safe:
   (`gh pr comment <n> --body 'oc exec deploy/redis-backend2 -- redis-cli FLUSHALL'`)
   is blocked, as the command itself is; pass such text with `--body-file`
   (`gh pr create --body-file <file>`, `git commit -F <file>`);
+- a Redis client in a pod you start is blocked whatever it runs, so
+  `redis-cli ping` or a benchmark there is a task for a human too; in the
+  `--overrides` JSON of `oc run`, in the text that `oc run` passes to its
+  pod on stdin (whatever program the pod runs) and in an inline manifest, a
+  client counts wherever its name stands as a word, so a label, an
+  environment value, a comment or a log file name such as `redis-cli.log`
+  counts too, while `redis-cli-0` or `my-redis-cli` does not; and an inline
+  manifest that only mentions the `deletion-approved` key is blocked as
+  well, a `--dry-run=server` one included. Every text on the stdin of
+  `oc apply`, `oc create` or `oc replace` counts as a manifest, whatever its
+  `-f` says, so an `oc create secret` or `configmap` that reads text naming
+  a client or the key on stdin is blocked too;
+- the line that receives a heredoc is read with its quotes removed, so a
+  commit, PR or issue title that names `oc run`, `oc apply`, `oc create` or
+  `oc replace` makes the body after it count as a pod's stdin or as a manifest
+  (`gh pr create --title "... oc run ..." --body "$(cat <<'EOF'` with a body
+  that names `redis-cli`), and a `<<` after a line that the hook's quoting
+  model does not read (one with a backslash, a backtick or `$'...'`, other
+  than in the word after a `<<` that the model is sure of, or an unclosed
+  `((`, `${` or `$[`) makes the hook read the command a second time with
+  the body as commands; pass such a body with `--body-file <file>` or
+  `git commit -F <file>`;
+- a `<<` whose delimiter line never comes counts as a heredoc that runs to
+  the end of the command wherever the quoting model cannot tell it from
+  text, so after `oc exec <pod> -- echo $((1<<$n))` the commands on the
+  next lines count as the stdin script of that `oc exec`; write such a
+  shift in a command of its own or with plain numbers (`$((1<<2))`);
+- an option value with blanks of `oc run` or `oc create` can make the hook
+  take another word for the pod's name, so
+  `oc run --env 'X=a b' redis-cli --image=redis` is blocked;
 - every word after `artisan` that is not an option counts as its command name,
   so `php artisan help migrate:fresh` is blocked too, and a sea-orm-cli wipe
   subcommand counts whatever options follow it, so

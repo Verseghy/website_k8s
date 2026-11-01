@@ -16,55 +16,74 @@
 #   and of what an oc get of a protected kind produces, argocd app delete,
 #   app delete-resource, app confirm-deletion and appset delete, finalizer
 #   patches and Delete or Recycle reclaim-policy patches through oc patch
-#   and argocd app patch-resource, Argo CD's deletion-approved annotation
-#   named in oc annotate, oc patch or any argocd command (one that only
-#   prints it included, and argocd as the value of an option of an oc that
-#   surely runs and only reads, never behind a runner's options or ssh, nor
-#   with a verb that runs a program), and sea-orm-cli's migrate fresh,
-#   refresh, reset and down against any database, a local one included,
-#   under both of its program names (sea-orm-cli and sea) and with grouped
-#   short options, among them; the read-only look-alikes that stay allowed;
-#   each check 2 target source (inline variables, -h, -d URIs, host=
-#   strings, positional URIs, sea-orm-cli's -u, the environment, plus
-#   PGHOSTADDR and PGSERVICE) for psql, pg_restore, mysql, mariadb and
-#   sea-orm-cli (also as sea); a command with no target; redis-cli and
-#   redis-benchmark run in the cluster, and one on this host, which stays
-#   allowed; port-forwards to PostgreSQL, MySQL, MariaDB and Redis ports,
-#   and the metrics and other ports that stay allowed; wrapped forms (sh -c,
-#   also with `--` and other options, here-strings, scripts piped into a
-#   shell, heredocs, also those that
+#   and argocd app patch-resource, finalizer patches through argocd app
+#   patch, Argo CD's deletion-approved annotation named in oc annotate,
+#   oc patch or any argocd command (one that only prints it included, and
+#   argocd as the value of an option of an oc that surely runs and only
+#   reads, never behind a runner's options or ssh, nor with a verb that
+#   runs a program) or in an inline manifest that oc apply, oc create or
+#   oc replace reads, and sea-orm-cli's migrate fresh, refresh, reset and
+#   down against any database, a local one included, under both of its
+#   program names (sea-orm-cli and sea) and with grouped short options,
+#   among them; the read-only look-alikes that stay allowed; each check 2
+#   target source (inline variables, -h, -d URIs, host= strings, positional
+#   URIs, sea-orm-cli's -u, the environment, plus PGHOSTADDR and PGSERVICE)
+#   for psql, pg_restore, mysql, mariadb and sea-orm-cli (also as sea); a
+#   command with no target; redis-cli, redis-benchmark, valkey-cli and
+#   keydb-cli run in the cluster, also as the command of a pod the agent
+#   starts (oc run, its --overrides and its stdin, oc create job, cronjob,
+#   deployment and deploymentconfig, an inline manifest), and one on this
+#   host, which stays allowed; port-forwards to PostgreSQL, MySQL, MariaDB
+#   and Redis ports, and the metrics and other ports that stay allowed;
+#   wrapped forms (sh -c, also with `--` and other options, here-strings,
+#   scripts piped into a shell, heredocs, also those that
 #   oc exec, oc rsh or oc debug run in the cluster, piped through further
 #   stages and line breaks too, in pipelines longer than 16 KiB, and as xargs
-#   arguments); the command part of oc exec, oc rsh and oc debug, which
-#   alone counts there, so that pod, container and namespace names, data
-#   paths and search patterns do not; the words after an unquoted $(...),
-#   `...` or <(...), which still belong to the command around it; oc's verb
-#   behind options before it that the hook does not know, and the hook's
-#   list of oc's value options, compared with the oc 4.22 client when that
-#   client is on PATH; oc delete --raw; patches read as their decoder reads
-#   them, escapes, JSON's \/ and escaped line breaks included, and their
-#   whole-object operations, in JSON and in YAML with its tags, anchors,
-#   comments (ended by any line break, also before an explicit key's
-#   colon), block scalars and aliases (also as a key), and its binary tag,
-#   `%` escapes in tags and %TAG directives; port numbers with a leading +;
-#   argocd's download names; $'...' and $"..." quoting, also inside other
-#   quotes; the echo or printf output of a substitution that the shell runs,
-#   also after a runner's own words, double-quoted and with empty quotes
-#   beside it, next to the commands that the substitution runs, without
-#   echo's own options; printf's \n and \t before a trigger word; text that
-#   xargs or parallel pass to oc, argocd, sea-orm-cli, artisan and the
-#   database commands; the commit, PR
-#   and search texts that only mention a blocked command; resource
-#   arguments with an empty type, which must not crash the checks; allowed
-#   commands; a missing jq; and the cost of long commands, a patch line full
-#   of YAML comments included.
+#   arguments); the command part of oc exec, oc rsh, oc debug, oc run and
+#   oc create, which alone counts there, so that pod, container, namespace
+#   and image names, data paths and search patterns do not; the words after
+#   an unquoted $(...), `...` or <(...), which still belong to the command
+#   around it; oc's verb behind options before it that the hook does not
+#   know, and the hook's list of oc's value options, compared with the
+#   oc 4.22 client when that client is on PATH; oc delete --raw; patches
+#   read as their decoder reads them, escapes, JSON's \/ and escaped line
+#   breaks included, and their whole-object operations, in JSON and in YAML
+#   with its tags, anchors, comments (ended by any line break, also before
+#   an explicit key's colon), block scalars and aliases (also as a key), and
+#   its binary tag, `%` escapes in tags and %TAG directives; port numbers
+#   with a leading +; argocd's download names; $'...' and $"..." quoting,
+#   also inside other quotes; the echo or printf output of a substitution
+#   that the shell runs, also after a runner's own words, double-quoted and
+#   with empty quotes beside it, next to the commands that the substitution
+#   runs, without echo's own options; printf's \n and \t before a trigger
+#   word; text that xargs or parallel pass to oc, argocd, sea-orm-cli,
+#   artisan and the database commands, also from a heredoc, and the
+#   here-string that cat passes on; heredocs on every line, after a `<`,
+#   beside others, behind a `<<` that may be quoted, inside the scripts a
+#   shell runs and in a pipeline that goes on after the body, with every
+#   delimiter word that bash accepts (`<<\EOF`, `<<'@@'`, `<<E"O"F`, ...),
+#   one that the hook cannot know, and none (a heredoc that runs to the end
+#   of the text), and a `<<` in arithmetic, a parameter expansion, a quoted
+#   string or a comment, which is no heredoc and hides nothing; what a
+#   subshell or brace group pipes on, and `< <(...)`; the commit, PR and
+#   search texts that only mention a blocked command; the gaps that stay
+#   open (oc attach and an image whose entrypoint is a Redis client among
+#   them) and the false positive of a title that names oc run or oc apply,
+#   pinned; resource arguments with an empty type, which must not crash the
+#   checks; allowed commands; a missing jq; and the cost of long commands, a
+#   patch line full of YAML comments, a long inline manifest and many
+#   heredocs included.
 #
 # Origin
 #   Adapted, with its fixtures and .claude/settings.json, from
 #   Verseghy/website_backend3's scripts/tests/test-guard-bash.sh, first from
 #   its commit 4e7fb76 and since brought up to its commit 3524b54 and to
-#   its next guard hook change, which blocks redis-cli in the cluster,
-#   Argo CD's patch-resource patches and its deletion approvals.
+#   its next two guard hook changes: the first blocks redis-cli in the
+#   cluster, Argo CD's patch-resource patches and its deletion approvals;
+#   the second blocks Redis clients in the pods an agent starts and in
+#   inline manifests, `argocd app patch` of finalizers and inline manifests
+#   that name the deletion-approved annotation, and reads heredocs on every
+#   line.
 #   Licence: that repository is AGPL-3.0-only; the original's only human
 #   author is a maintainer of both repositories and, by merging each
 #   adaptation here (the first in #54), licensed it under this repository's
@@ -74,8 +93,9 @@
 #   Each case builds a PreToolUse payload with jq (the shape Claude Code sends,
 #   see scripts/tests/fixtures/guard-bash/), pipes it into the hook with a
 #   controlled environment and asserts the exit code: 0 allows, 2 blocks. For
-#   blocked commands it also asserts that stderr carries the hook's reason.
-#   It prints one TAP-style "ok N" or "not ok N" line per case.
+#   blocked commands it also asserts that stderr carries the reason of a
+#   check, not one of the hook's fail-closed messages. It prints one
+#   TAP-style "ok N" or "not ok N" line per case.
 #
 # Usage
 #   bash scripts/tests/test-guard-bash.sh     (from the repository root)
@@ -165,8 +185,11 @@ expect() {
   run_hook_file "$work/payload.json" "$@"
   if [[ "$status" != "$expected" ]]; then
     report fail "exit $expected for: $label" "  got exit $status; stderr: $(cat "$work/err")"
-  elif [[ "$expected" == 2 ]] && ! grep -q '^Blocked by .claude/hooks/guard-bash.sh' "$work/err"; then
-    report fail "reason on stderr for: $label" "  stderr was: $(cat "$work/err")"
+  elif [[ "$expected" == 2 ]] && ! grep -q '^Blocked by .claude/hooks/guard-bash.sh (check [12]): ' "$work/err"; then
+    # A block must come from a check, not from the fail-closed paths: their
+    # messages start the same way, so a case that the hook only blocks
+    # because the policy failed (a jq error) would otherwise pass.
+    report fail "reason of a check on stderr for: $label" "  stderr was: $(cat "$work/err")"
   elif [[ "$expected" == 0 ]] && [[ -s "$work/err" || -s "$work/out" ]]; then
     report fail "silent allow for: $label" "  stdout: $(cat "$work/out"); stderr: $(cat "$work/err")"
   else
@@ -255,6 +278,7 @@ expected_settings="$(
       "Bash(argocd app patch-resource *finalizers*)",
       "Bash(argocd app patch-resource *persistentVolumeReclaimPolicy*Delete*)",
       "Bash(argocd app patch-resource *persistentVolumeReclaimPolicy*Recycle*)",
+      "Bash(argocd app patch *finalizers*)",
       "Bash(argocd *deletion-approved*)",
       "Bash(oc patch *finalizers*)",
       "Bash(oc patch *persistentVolumeReclaimPolicy*Delete*)",
@@ -412,14 +436,16 @@ fi
 # The hook's oc_value_options lists the oc options that take a separate value,
 # from the oc 4.22 client. When that client is on PATH, its help is the
 # reference: every option that `oc options`, or the help of a verb whose words
-# the hook reads (get, delete, exec, rsh, debug, port-forward), shows with a
-# value must be listed, and none that it shows as a boolean may be. The
-# exceptions are the options that pflag gives a value of their own when they
-# stand alone (NoOptDefVal: --cascade and --dry-run), which take no separate
-# value although their help shows one. Help is printed locally, and an empty
-# kubeconfig keeps oc from finding a cluster. CI has no oc, and another
-# client version may have other options, so the case is skipped then; compare
-# the list with that client by hand when it changes.
+# the hook reads (get, delete, exec, rsh, debug, port-forward, run, create
+# and the create subcommands job, cronjob, deployment and deploymentconfig),
+# shows with a value must be listed, and none that it shows as a boolean may
+# be. The exceptions are the options that pflag gives a value of their own
+# when they stand alone (NoOptDefVal: --cascade, --dry-run and --validate),
+# which take no separate value although their help shows one. Help is
+# printed locally, and an empty kubeconfig keeps oc from finding a cluster.
+# CI has no oc, and another client version may have other options, so the
+# case is skipped then; compare the list with that client by hand when it
+# changes.
 label="oc_value_options matches the value options of the oc 4.22 client"
 if ! command -v oc >/dev/null 2>&1; then
   report ok "$label # SKIP oc is not on PATH" ""
@@ -436,12 +462,17 @@ else
     # is false or true.
     oc_option_lines="$({
       KUBECONFIG="$work/kubeconfig" oc options
-      for verb in get delete exec rsh debug port-forward; do KUBECONFIG="$work/kubeconfig" oc "$verb" --help; done
+      for verb in get delete exec rsh debug port-forward run create \
+        'create job' 'create cronjob' 'create deployment' 'create deploymentconfig'; do
+        # The create subcommands are two words, so $verb is split on purpose.
+        # shellcheck disable=SC2086
+        KUBECONFIG="$work/kubeconfig" oc $verb --help
+      done
     } 2>/dev/null | grep -E '^ +(-[A-Za-z], )?--[a-z0-9-]+=' | sed -E 's/^ +//' || true)"
     # Prints the option names of such lines, one per line, sorted (a line
     # "-n, --namespace='':" names -n and --namespace).
     option_names() { sed -E 's/=.*//; s/, /\n/' | LC_ALL=C sort -u; }
-    client_values="$(grep -vE '=(false|true):' <<<"$oc_option_lines" | option_names | grep -vxE -- '--cascade|--dry-run' || true)"
+    client_values="$(grep -vE '=(false|true):' <<<"$oc_option_lines" | option_names | grep -vxE -- '--cascade|--dry-run|--validate' || true)"
     client_booleans="$(grep -E '=(false|true):' <<<"$oc_option_lines" | option_names || true)"
     hook_values="$(sed -n '/^def oc_value_options:/,/];/p' "$hook" | grep -oE '"-[^"]+"' | tr -d '"' | LC_ALL=C sort -u)"
     missing="$(LC_ALL=C comm -23 <(printf '%s\n' "$client_values") <(printf '%s\n' "$hook_values") | tr '\n' ' ')"
@@ -1233,6 +1264,76 @@ allows $'git commit -F - <<\'EOF\'\nrepo: block finalizer patches through Argo C
 reason_mentions "$pvc_patch --patch '{\"metadata\":{\"finalizers\":null}}'" '`argocd app patch-resource` changes finalizers'
 reason_mentions "$pv_patch --patch '{\"spec\":{\"persistentVolumeReclaimPolicy\":\"Recycle\"}}'" 'does not block setting the reclaim policy to Retain'
 
+# ------------------------------------------------------------- check 1: argocd app patch of an Application's finalizers
+
+# argocd app patch changes the Application itself, whose finalizers decide
+# what a later deletion takes along, so the patch rule's finalizer match
+# applies: a patch that names finalizers, additions included, in both --type
+# formats, escapes included, and one that replaces the whole object or its
+# metadata, which drops the finalizers without naming them.
+app_patch='argocd app patch verseghy-website-frontend'
+drop_finalizers="--patch '{\"metadata\":{\"finalizers\":null}}'"
+blocks "$app_patch --type merge $drop_finalizers"
+blocks "$app_patch $drop_finalizers"
+blocks "$app_patch --type=merge --patch='{\"metadata\":{\"finalizers\":[]}}'"
+blocks "$app_patch --patch '[{\"op\":\"remove\",\"path\":\"/metadata/finalizers\"}]' --type json"
+blocks "$app_patch --type json --patch '[{\"op\":\"add\",\"path\":\"/metadata/finalizers/-\",\"value\":\"resources-finalizer.argocd.argoproj.io\"}]'"
+blocks "$app_patch --type merge --patch '{\"metadata\":{\"Finalizers\":null}}'"
+blocks "$app_patch --type merge --patch '{\"metadata\":{\"fin\\u0061lizers\":null}}'"
+blocks "$app_patch --type merge --patch \$'{\"metadata\":{\"fin\\x61lizers\":null}}'"
+blocks "$app_patch -N verseghy --type merge $drop_finalizers"
+blocks "$app_patch --type json --patch '[{\"op\":\"replace\",\"path\":\"/metadata\",\"value\":{\"name\":\"verseghy-website-frontend\"}}]'"
+blocks "$app_patch --type json --patch '[{\"op\":\"replace\",\"path\":\"\",\"value\":{}}]'"
+blocks "$app_patch --type json --patch '[{\"op\":\"replace\",\"path\":\"\\/metadata\",\"value\":{}}]'"
+# Every option order: the patch and its type before the Application and
+# before the subcommand, unknown options, argocd's boolean global options,
+# and each value option the hook skips, --type among them, next to an
+# unknown option.
+blocks "argocd app patch $drop_finalizers --type merge verseghy-website-frontend"
+blocks "argocd app --type merge $drop_finalizers patch verseghy-website-frontend"
+blocks "argocd --server argocd.example.org --grpc-web app patch verseghy-website-frontend $drop_finalizers"
+blocks "argocd app --some-new-option v patch verseghy-website-frontend $drop_finalizers"
+blocks "argocd app --some-new-option patch verseghy-website-frontend $drop_finalizers"
+for opt in "${argocd_global_value_options[@]}" --app-namespace -N --patch --type; do
+  blocks "argocd app --some-new-option v $opt x patch verseghy-website-frontend $drop_finalizers"
+done
+for opt in --plaintext --insecure --grpc-web --port-forward --core --prompts-enabled; do
+  blocks "argocd app $opt patch verseghy-website-frontend $drop_finalizers"
+done
+# Quotes, environment prefixes, wrappers, xargs, heredocs and download names.
+blocks "argocd app 'patch' verseghy-website-frontend $drop_finalizers"
+blocks "argocd app p\\atch verseghy-website-frontend $drop_finalizers"
+blocks "ARGOCD_SERVER=argocd.example.org $app_patch --type merge $drop_finalizers"
+blocks "sh -c \"$app_patch --type merge --patch '{\\\"metadata\\\":{\\\"finalizers\\\":null}}'\""
+blocks "oc exec toolbox -- $app_patch --type merge $drop_finalizers"
+blocks "echo verseghy-website-frontend | xargs -I{} argocd app patch {} --type merge $drop_finalizers"
+blocks $'bash <<\'EOF\'\nargocd app patch verseghy-website-frontend --type merge --patch \'{"metadata":{"finalizers":null}}\'\nEOF'
+blocks "./argocd-linux-amd64 app patch verseghy-website-frontend --type merge $drop_finalizers"
+# A patch of anything else, a reclaim-policy word (an Application has no
+# reclaim policy, so that match does not apply), an Application named patch,
+# and the commands that only read stay allowed.
+allows "$app_patch --type merge --patch '{\"spec\":{\"syncPolicy\":{\"automated\":null}}}'"
+allows "$app_patch --patch '[{\"op\":\"replace\",\"path\":\"/spec/source/targetRevision\",\"value\":\"master\"}]' --type json"
+allows "$app_patch --type json --patch '[{\"op\":\"add\",\"path\":\"/metadata/labels/tier\",\"value\":\"web\"}]'"
+allows "$app_patch --type merge --patch '{\"spec\":{\"persistentVolumeReclaimPolicy\":\"Delete\"}}'"
+allows 'argocd app get patch'
+allows 'argocd app get verseghy-website-frontend -o json | jq .metadata.finalizers'
+allows "argocd app get verseghy-website-frontend -o jsonpath='{.metadata.finalizers}'"
+allows "git commit -m 'repo: block argocd app patch of finalizers'"
+allows $'git commit -F - <<\'EOF\'\nrepo: block finalizer patches of Applications\n\nargocd app patch verseghy-website-frontend --patch \'{"metadata":{"finalizers":null}}\'\nEOF'
+reason_mentions "$app_patch --type merge $drop_finalizers" '`argocd app patch` of an Argo CD Application changes finalizers'
+reason_mentions "$app_patch --type merge $drop_finalizers" "Argo CD's resources finalizer"
+
+# The readings that this repository's patch rule adds read argocd app patch
+# too: the YAML binary tag, an alias used as a key, empty quotes beside a
+# command-name substitution, and text that xargs passes to argocd. The
+# reason says how to change an Application instead.
+blocks "$app_patch --type merge --patch 'metadata: {!!binary ZmluYWxpemVycw==: null}'"
+blocks "$app_patch --type json --patch '[{op: replace, value: {labels: {k: &k path}}, *k : /metadata}]'"
+blocks "\$(echo argocd)'' app patch verseghy-website-frontend $drop_finalizers"
+blocks "echo 'patch verseghy-website-frontend --type merge --patch {\"metadata\":{\"finalizers\":null}}' | xargs argocd app"
+reason_mentions "$app_patch --type merge $drop_finalizers" 'change its manifest under verseghy-website/ or microshift-infra/ in a pull request'
+
 # ------------------------------------------------------------- check 1: Argo CD's deletion-approved annotation
 
 # Setting the annotation that argocd app confirm-deletion writes approves the
@@ -1336,12 +1437,13 @@ reason_mentions "oc annotate application verseghy-website-frontend -n argocd $ap
 # (`env -u oc -vu get ...`, `ssh oc -vl get ...`). A verb that runs a
 # program runs argocd in a pod (`oc run ... -- sudo -n argocd ...`), and
 # every reading of the verb must be get or describe: cobra runs
-# `oc --field-manager get run ...` as run. After assignments, runner words
-# without options and `timeout` with a plain duration, the oc is the
-# program, so reading the annotation there stays allowed. Anything else
-# before it, a runner's options or another number included
-# (`timeout -s KILL 30`, `nice 10`), leaves that unsure, which errs towards
-# blocking.
+# `oc --new-option get run ...` as run, for an option the hook does not
+# list, and `oc --field-manager get run ...` too (`--field-manager` is a
+# value option of create and run, which the hook lists). After assignments,
+# runner words without options and `timeout` with a plain duration, the oc
+# is the program, so reading the annotation there stays allowed. Anything
+# else before it, a runner's options or another number included (`timeout
+# -s KILL 30`, `nice 10`), leaves that unsure, which errs towards blocking.
 approval_patch="--type merge --patch '{\"metadata\":{\"annotations\":{\"$approval\":\"now\"}}}'"
 blocks "env -u oc -v argocd app patch verseghy-website-frontend $approval_patch"
 blocks "env -u oc -v argocd app create verseghy-website-frontend --upsert --annotations $approval=now"
@@ -1357,6 +1459,7 @@ blocks "env -u oc -vu get -v argocd app patch verseghy-website-frontend $approva
 blocks "ssh oc -vl get -n argocd app patch verseghy-website-frontend $approval_patch"
 blocks "oc run cli --image quay.io/argoproj/argocd --restart Never --command -- sudo -n argocd app patch verseghy-website-frontend $approval_patch"
 blocks "oc --field-manager get run cli --image quay.io/argoproj/argocd --restart Never --command -- sudo -n argocd app patch verseghy-website-frontend $approval_patch"
+blocks "oc --new-option get run cli --image quay.io/argoproj/argocd --restart Never --command -- sudo -n argocd app patch verseghy-website-frontend $approval_patch"
 blocks "timeout -s KILL 30 oc get application verseghy-website-frontend -n argocd -o jsonpath='{.metadata.annotations.argocd\\.argoproj\\.io/deletion-approved}'"
 blocks "nice 10 oc get application verseghy-website-frontend -n argocd -o jsonpath='{.metadata.annotations.argocd\\.argoproj\\.io/deletion-approved}'"
 # Only a plain duration after timeout counts (`30`, `30s`, `1.5m`): after a
@@ -1368,6 +1471,59 @@ allows "KUBECONFIG=hub.kubeconfig oc get application verseghy-website-frontend -
 allows "sudo oc get application verseghy-website-frontend -n argocd -o jsonpath='{.metadata.annotations.argocd\\.argoproj\\.io/deletion-approved}'"
 allows "timeout 1.5m oc get application verseghy-website-frontend -n argocd -o jsonpath='{.metadata.annotations.argocd\\.argoproj\\.io/deletion-approved}'"
 allows "oc describe applications -n argocd -l $approval"
+
+# ------------------------------------------------------------- check 1: the deletion-approved annotation in an inline manifest
+
+# A manifest that oc apply, oc create or oc replace reads from the command
+# text sets the annotation as oc annotate does, so it is blocked in every
+# inline form: a heredoc (quoted, unquoted or <<-), also through cat, a
+# here-string, piped echo or printf text, also through more stages and cat,
+# and the echo or printf output of a process substitution, in YAML or JSON,
+# escapes included, wherever its -f points, after options, prefixes and
+# wrappers, and in a --dry-run too, since the hook does not tell a manifest
+# that sets the key from one that mentions it.
+app_manifest=$'apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: verseghy-website-frontend\n  namespace: verseghy\n  annotations:\n    argocd.argoproj.io/deletion-approved: "2026-10-26T00:00:00Z"'
+blocks "oc apply -f - <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc apply -f - <<EOF"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc apply -f - <<-'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc create -f - <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc replace -f - <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc apply -f /dev/stdin <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc apply --server-side --dry-run=server -n verseghy -f - <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc -n verseghy apply -f - <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "KUBECONFIG=hub.kubeconfig timeout 30 oc apply -f - <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "cat <<'EOF' | oc apply -f -"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "cat <<'EOF' | tee app.yaml | oc apply -f -"$'\n'"$app_manifest"$'\n'"EOF"
+blocks "oc apply -f - <<< '$app_manifest'"
+blocks "oc replace -f - <<< '$app_manifest'"
+blocks "echo '$app_manifest' | oc apply -f -"
+blocks "echo -n '$app_manifest' | oc create -f -"
+blocks "printf '%s\n' '$app_manifest' | oc apply -f -"
+blocks "echo '$app_manifest' | tee app.yaml | oc apply -f -"
+blocks "cat <<< '$app_manifest' | oc apply -f -"
+blocks "oc apply -f <(echo '$app_manifest')"
+blocks "oc create -f <(printf '%s\n' '$app_manifest')"
+blocks "echo '{\"metadata\":{\"name\":\"verseghy-website-frontend\",\"annotations\":{\"$approval\":\"now\"}}}' | oc apply -f -"
+blocks "oc apply -f - <<< 'metadata: {annotations: {\"argocd.argoproj.io/deletion\\x2dapproved\": now}}'"
+blocks "oc apply -f - <<< 'metadata: {annotations: {\"argocd.argoproj.io/deletion\\u002dapproved\": now}}'"
+blocks "sh -c \"oc apply -f - <<< 'metadata: {annotations: {$approval: now}}'\""
+blocks "echo '$app_manifest' | oc exec -i toolbox -- oc apply -f -"
+blocks $'bash <<\'EOF\'\noc apply -f - <<< \'metadata: {annotations: {argocd.argoproj.io/deletion-approved: now}}\'\nEOF'
+# Another annotation, a manifest that names no Redis client nor the key,
+# the commands that only read it, a manifest written to a file, and texts
+# that only mention the key stay allowed.
+allows "oc apply -f - <<'EOF'"$'\n'"${app_manifest/deletion-approved/refresh}"$'\n'"EOF"
+allows "echo '${app_manifest/deletion-approved/sync-wave}' | oc apply -f -"
+allows "oc get application verseghy-website-frontend -o yaml | grep deletion-approved"
+allows "cat > app.yaml <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+allows "echo '$app_manifest' > app.yaml"
+allows "echo '$app_manifest' | grep -c deletion-approved"
+allows $'git commit -F - <<\'EOF\'\nrepo: block the annotation in an inline manifest\n\noc apply -f - with argocd.argoproj.io/deletion-approved is blocked\nEOF'
+allows "gh pr comment 60 --body-file - <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"
+reason_mentions "oc apply -f - <<< '$app_manifest'" '`oc apply` reads a manifest from the command text'
+reason_mentions "oc create -f <(echo '$app_manifest')" '`oc create` reads a manifest'
+reason_mentions "cat <<'EOF' | oc replace -f -"$'\n'"$app_manifest"$'\n'"EOF" '`oc replace` reads a manifest'
+reason_mentions "echo '$app_manifest' | oc apply -f -" 'a --dry-run one included'
 
 # ------------------------------------------------------------- check 1: patches read as their decoder reads them
 
@@ -1583,6 +1739,278 @@ allows 'echo pod/web-0 | xargs oc delete'
 allows 'echo confirm-deletion verseghy-website-frontend | xargs -a apps.txt argocd app'
 allows "echo 'oc delete pvc data' | xargs -0 git commit -m"
 allows "echo '-h localhost' | xargs psql"
+
+# ------------------------------------------------------------- checks 1 and 2: heredocs that xargs or parallel read, here-strings that cat passes on
+
+# A heredoc that xargs or GNU parallel read, directly or through cat, gives
+# the command they run its arguments, as a here-string does (also to
+# sea-orm-cli and artisan, the programs of this repository's own wipe
+# checks), and a here-string that cat passes on through a pipe is read as
+# piped echo text is, by a shell, by xargs and by oc exec, oc rsh, oc debug
+# and oc run.
+blocks $'xargs oc <<\'EOF\'\ndelete ns web\nEOF'
+blocks $'xargs oc delete <<EOF\nns/web\nEOF'
+blocks $'parallel oc delete <<\'EOF\'\nns/web\nEOF'
+blocks $'cat <<\'EOF\' | xargs oc\ndelete ns web\nEOF'
+blocks $'cat <<\'EOF\' | parallel oc delete\npvc/data\nEOF'
+blocks $'xargs argocd app <<\'EOF\'\nconfirm-deletion verseghy-website-frontend\nEOF'
+blocks $'xargs psql -h <<\'EOF\'\ndb.example.org\nEOF'
+blocks $'xargs sea <<\'EOF\'\nmigrate fresh\nEOF'
+blocks "cat <<< 'migrate:fresh --force' | xargs php artisan"
+blocks $'echo start\nxargs oc <<\'EOF\'\ndelete ns web\nEOF'
+blocks "cat <<< 'delete ns web' | xargs oc"
+blocks "cat <<< 'oc delete ns web' | sh"
+blocks "cat <<< 'oc delete ns web' | tr a a | bash"
+blocks "cat <<< 'redis-cli flushall' | oc exec -i redis-0 -- sh"
+blocks "cat <<< 'psql -c \"select 1\"' | oc exec -i pg-0 -- sh"
+blocks "cat -u <<< 'redis-cli flushall' | oc rsh redis-0"
+# A heredoc on a later line of the command is read as on the first one: a
+# script that oc exec reads runs in the cluster, and a commit message there
+# is data.
+blocks $'echo start\noc exec -i pg-0 -- sh <<\'EOF\'\npsql -c x\nEOF'
+blocks $'cd /tmp\noc rsh redis-0 <<\'EOF\'\nredis-cli flushall\nEOF'
+allows $'git add -A\ngit commit -F - <<\'EOF\'\nrepo: oc delete ns web is blocked\nEOF'
+# Other programs, and text that only xargs or cat print, stay allowed.
+allows $'xargs echo <<\'EOF\'\ndelete ns web\nEOF'
+allows $'xargs -n1 basename <<\'EOF\'\n/tmp/a\nEOF'
+allows $'parallel echo <<\'EOF\'\noc delete ns web\nEOF'
+allows "cat <<< 'delete ns web' | wc -l"
+allows "cat <<< 'redis-cli flushall' > notes.txt"
+allows "cat <<< 'oc delete ns web' | grep -c oc"
+
+# ------------------------------------------------------------- checks 1 and 2: where a heredoc stands and what reads it
+
+# A `<<` inside quotes is no heredoc, and the lines after it are commands:
+# the hook reads a command a second time with only the operators that its
+# quoting model finds surely outside quotes (see heredoc_texts), so a
+# quoted `<<WORD`, on the first or a later line, hides nothing.
+blocks $'true\necho \'<<X\'\noc exec redis-0 -- redis-cli flushall\nX'
+blocks $'echo "<<EOF2"\noc delete ns web\nEOF2'
+blocks $'echo "a\n<<EOF2"\noc delete ns web\nEOF2'
+blocks $'git commit -m "subject\n\nbody mentions <<EOF2 here"\noc exec redis-0 -- redis-cli flushall\nEOF2'
+blocks $'# a comment with <<X\noc delete ns web\nX'
+blocks $'echo "a\\"<<X"\noc delete ns web\nX'
+blocks $'echo \'a"b\'"c <<X"\noc delete ns web\nX'
+blocks $'echo `echo <<X`\noc delete ns web\nX'
+# The first reading still takes every operator, so a real heredoc after
+# quoting the model does not know is read too.
+blocks $'echo don\\\'t\noc exec -i redis-0 -- sh <<\'EOF\'\nredis-cli flushall\nEOF'
+blocks $'echo `date`\noc exec -i pg-0 -- sh <<\'EOF\'\npsql -c x\nEOF'
+# Where the model is sure, a heredoc is data as before: the commit idioms,
+# a title with an apostrophe, a $(...) in double quotes and a comment.
+allows $'cd "$(git rev-parse --show-toplevel)" && git commit -m "$(cat <<\'EOF\'\nrepo: oc delete ns web is blocked\nEOF\n)"'
+allows $'gh pr create --title "repo: it\'s blocked" --body "$(cat <<\'EOF\'\noc delete ns web is blocked\nEOF\n)"'
+allows $'ls # it\'s here\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'echo "a" \'b\' ${X} $1 a#b\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'git commit -m "subject\n\nbody"\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'git commit -m \'subject\n\nbody\'\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'git commit -m "$(cat <<\'EOF\'\nmsg\nEOF\n)"\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'git commit -m "$(\ncat <<\'EOF\'\nrepo: oc delete ns web is blocked\nEOF\n)"'
+# A body with an odd double quote would end the "$( word early if the
+# heredoc were read as text, so these pin the model's open "$( too.
+allows $'git commit -m "$(cat <<\'EOF\'\nrepo: say "hi\noc delete ns web is blocked\nEOF\n)"'
+allows $'git commit -m "$(\ncat <<\'EOF\'\nrepo: say "hi\noc delete ns web is blocked\nEOF\n)"'
+allows $'cd $(git rev-parse --show-toplevel)\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'cat <<-\'EOF\' > notes.txt\n\toc delete ns web\n\tEOF'
+allows 'echo $((1<<2)); oc get pods'
+allows $'echo $((1<<2)); cat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+# A here-string is no heredoc, also when its word looks like a delimiter,
+# and the quoting after a pipeline's next line still counts.
+blocks $'cat <<<EOF\noc delete ns web\nEOF'
+blocks $'cat <<\'EOF\' |\nhello\nEOF\ngrep "x\ny <<Z"\noc delete ns web\nZ'
+
+# Every operator on a line counts, also after a `<` (`<(cat <<'EOF'`), and
+# every receiver on the line reads every body on it, so the second heredoc
+# of a line and a second heredoc on one descriptor are read too.
+blocks $'oc apply -f <(cat <<\'EOF2\'\nmetadata:\n  annotations:\n    argocd.argoproj.io/deletion-approved: x\nEOF2\n)'
+blocks $'oc create -f <(cat <<\'EOF\'\nspec:\n  containers:\n  - command: [redis-cli, FLUSHALL]\nEOF\n)'
+blocks $'oc exec -i pod -- sh < <(cat <<\'EOF\'\nredis-cli flushall\nEOF\n)'
+blocks $'oc exec -i pod -- sh <<\'A\'; oc apply -f - <<\'B\'\nls\nA\nargocd.argoproj.io/deletion-approved: x\nB'
+blocks $'oc exec -i pg-0 -- cat <<\'A\'; oc exec -i pg-0 -- sh <<\'B\'\nnotes\nA\npsql -c x\nB'
+blocks $'oc apply -f - <<\'EOF\' <<\'EOF2\'\nkind: ConfigMap\nEOF\ncommand: [redis-cli, FLUSHALL]\nEOF2'
+allows $'cat <<\'A\' > a.txt; cat <<\'B\' > b.txt\noc delete ns web\nA\nmore\nB'
+# A quoted option value with a separator does not hide the verb from the
+# receiver tests.
+blocks $'oc --selector=\'a|b\' apply -f - <<\'EOF\'\ncommand: [redis-cli, FLUSHALL]\nEOF'
+blocks $'oc --selector=\'a|b\' exec -i pod -- sh <<\'EOF\'\nredis-cli flushall\nEOF'
+blocks $'oc --selector="a;b" run -i tmp --image=redis -- sh <<\'EOF\'\nredis-cli flushall\nEOF'
+
+# A pipeline that goes on after the bodies, and a group that closes on the
+# line after them, take the body as their stdin.
+blocks $'cat <<\'EOF\' |\nspec:\n  containers:\n  - command: [redis-cli, FLUSHALL]\nEOF\noc apply -f -'
+blocks $'cat <<\'EOF\' |\nredis-cli FLUSHALL\nEOF\noc run -i tmp --image=redis -- sh'
+blocks $'cat <<\'EOF\' |\nredis-cli FLUSHALL\nEOF\noc exec -i pod -- sh'
+blocks $'cat <<\'EOF\' | tee copy.txt |\nredis-cli flushall\nEOF\noc rsh redis-0'
+blocks $'cat <<\'EOF\' |&\ndelete ns web\nEOF\nxargs oc'
+blocks $'cat <<\'EOF\' |\noc delete ns web\nEOF\nsh'
+blocks $'( cat <<\'EOF2\'\nmetadata:\n  annotations:\n    argocd.argoproj.io/deletion-approved: x\nEOF2\n) | oc apply -f -'
+blocks $'{ cat <<\'EOF2\'\nspec: {containers: [{command: [redis-cli]}]}\nEOF2\n} | oc create -f -'
+allows $'cat <<\'EOF\' |\nredis-cli FLUSHALL\nEOF\nwc -l'
+allows $'cat <<\'EOF\' |\nhello\nEOF\nwc -l\noc get pods'
+
+# What a subshell or brace group prints is piped on like echo text.
+blocks "{ echo 'argocd.argoproj.io/deletion-approved: x'; } | oc apply -f -"
+blocks "(echo 'argocd.argoproj.io/deletion-approved: x') | oc apply -f -"
+blocks "(echo 'command: [redis-cli, FLUSHALL]'; echo x) | oc create -f -"
+blocks "(echo 'redis-cli flushall') | oc exec -i redis-0 -- sh"
+blocks "{ echo 'redis-cli flushall'; } | oc run -i tmp --image=redis -- sh"
+blocks "{ echo 'oc delete ns web'; } | sh"
+blocks "( echo 'oc delete ns web' ) 2>/dev/null | bash"
+allows "( echo hi; echo there ) | oc exec -i pod -- cat"
+allows "{ echo 'kind: ConfigMap'; } | oc apply --dry-run=client -f -"
+allows "( echo 'oc delete ns web' ) > out.txt; wc -l out.txt"
+allows "{ echo x; } > out.txt; oc get pods"
+
+# A process substitution that `<` redirects to stdin is that stdin.
+blocks "oc run -i tmp --image=redis -- sh < <(echo 'redis-cli FLUSHALL')"
+blocks "oc exec -i pod -- sh < <(echo 'redis-cli FLUSHALL')"
+blocks "oc rsh redis-0 < <(printf 'redis-cli flushall\\n')"
+blocks "oc apply -f - < <(echo 'argocd.argoproj.io/deletion-approved: x')"
+blocks "xargs oc < <(echo delete ns web)"
+allows "oc get pods < <(echo x)"
+allows "wc -l < <(echo 'redis-cli flushall')"
+allows "oc exec -i pod -- cat < <(echo hello)"
+
+# A heredoc inside a script that a shell runs (a -c string, the arguments
+# of eval or ssh, piped echo text) is read as at the top, and data there
+# stays data.
+blocks $'sh -c \'oc apply -f - <<EOF2\nmetadata:\n  annotations:\n    argocd.argoproj.io/deletion-approved: x\nEOF2\''
+blocks $'bash -c "oc apply -f - <<EOF2\nmetadata:\n  annotations:\n    argocd.argoproj.io/deletion-approved: x\nEOF2"'
+blocks $'ssh bastion \'oc create -f - <<EOF2\nspec:\n  containers:\n  - command: [redis-cli, FLUSHALL]\nEOF2\''
+blocks $'sh -c \'oc run -i tmp --image=redis -- sh <<EOF\nredis-cli flushall\nEOF\''
+blocks $'eval \'oc exec -i pg-0 -- sh <<EOF\npsql -c x\nEOF\''
+blocks $'echo \'oc exec -i redis-0 -- sh <<EOF\nredis-cli flushall\nEOF\' | sh'
+blocks "printf 'oc apply -f - <<EOF\\nargocd.argoproj.io/deletion-approved: x\\nEOF\\n' | oc exec -i deploy/tools -- sh"
+blocks "printf 'oc apply -f - <<EOF\\nargocd.argoproj.io/deletion-approved: x\\nEOF\\n' | sh"
+allows $'sh -c \'cat > notes.txt <<EOF\noc delete ns web\nEOF\''
+allows $'bash -c \'git commit -F - <<EOF\nrepo: oc delete ns web is blocked\nEOF\''
+
+# A heredoc's delimiter is the word after `<<` as bash reads it: quotes and
+# backslashes are removed and nothing is expanded, so each spelling below
+# ends at the line after it, and its body goes to its receiver as a plain
+# `<<'EOF'` body does. Before, only a plain word, alone or in one pair of
+# quotes, counted, and the body of any other spelling was read as host
+# commands, where a Redis client is not checked and a database client with
+# no host counts as local. Each pair is the word after `<<` and the line
+# that ends the body.
+heredoc_spellings=(
+  '\EOF' 'EOF'
+  "'@@'" '@@'
+  'E"O"F' 'EOF'
+  "'END OF'" 'END OF'
+  "'END-OF:YAML'" 'END-OF:YAML'
+  "\$'EOF'" 'EOF'
+  "\$'E\\x4fF'" 'EOF'
+  "\$'E\\'F'" "E'F"
+  '$"EOF"' 'EOF'
+  '"$X"' '$X'
+  '$X' '$X'
+)
+for ((k = 0; k < ${#heredoc_spellings[@]}; k += 2)); do
+  w="${heredoc_spellings[k]}" d="${heredoc_spellings[k + 1]}"
+  blocks "oc exec -i redis-backend2-0 -- sh <<$w"$'\n''redis-cli FLUSHALL'$'\n'"$d"
+  blocks "oc rsh redis-backend2-0 <<$w"$'\n''redis-cli FLUSHALL'$'\n'"$d"
+  blocks "oc exec -i mysql-0 -- sh <<$w"$'\n'"mysql -e 'drop database x'"$'\n'"$d"
+  blocks "oc run -i tmp --image=redis --restart=Never -- sh <<$w"$'\n''redis-cli -h redis-backend2 FLUSHALL'$'\n'"$d"
+  blocks "oc apply -f - <<$w"$'\n''metadata:'$'\n''  annotations:'$'\n''    argocd.argoproj.io/deletion-approved: "x"'$'\n'"$d"
+  blocks "oc create -f - <<$w"$'\n''spec:'$'\n''  containers:'$'\n''  - command: [redis-cli, -h, redis-backend2, FLUSHALL]'$'\n'"$d"
+  blocks "cat <<$w | oc apply -f -"$'\n''argocd.argoproj.io/deletion-approved: x'$'\n'"$d"
+  blocks "xargs oc <<$w"$'\n''delete ns web'$'\n'"$d"
+  # The body ends at that line, not later: the command after it is read.
+  blocks "cat <<$w > notes.txt"$'\n''hello'$'\n'"$d"$'\n''oc delete ns web'
+  allows "git commit -F - <<$w"$'\n''repo: oc delete ns web is blocked'$'\n'"$d"
+  allows "gh pr create --title 'repo: guardrails' --body-file - <<$w"$'\n''Blocks oc exec redis-0 -- redis-cli FLUSHALL.'$'\n'"$d"
+done
+# A `<<-` strips the tabs before the body's lines and the delimiter's, and
+# a `\r` before a CRLF line break belongs to the word, as in bash, so the
+# line `EOF` with its `\r` ends the body.
+blocks $'oc exec -i redis-0 -- sh <<-\\EOF\n\tredis-cli flushall\n\tEOF'
+blocks $'oc exec -i redis-0 -- sh <<\'EOF\'\r\nredis-cli flushall\r\nEOF\r\n'
+allows $'cat <<\'EOF\' > notes.txt\r\noc delete ns web\r\nEOF\r\n'
+allows $'cat > notes.txt <<\'EOF\'\r\noc delete ns web\r\nEOF\r\n'
+allows $'git commit -F - <<\\EOF\r\nrepo: oc delete ns web is blocked\r\nEOF\r\n'
+# bash expands the $(...) of a body only when no part of the word is
+# quoted or escaped.
+blocks $'cat <<$X > notes.txt\n$(oc delete ns web)\n$X'
+allows $'cat <<\\EOF > notes.txt\n$(oc delete ns web)\nEOF'
+allows $'cat <<E"O"F > notes.txt\n$(oc delete ns web)\nEOF'
+# The word after a sure `<<` is blanked before the quoting model reads its
+# line, so the backslash of `<<\EOF` does not make the quoting unknown, and
+# a commit body after it stays data.
+allows $'oc exec -i redis-0 -- sh <<\\EOF\nls\nEOF\ngit commit -F - <<\'EOF\'\nrepo: mention oc delete ns web\nEOF'
+
+# A delimiter that the hook does not know (a $(...), `...`, ${...} or
+# $[...] in the word, which bash reads as one piece, blanks included, or a
+# quote that does not close on the line, which puts a line break into the
+# delimiter) makes the rest of the text count both as the body and as
+# commands, since bash may end the body on any later line or on none.
+blocks $'oc exec -i redis-0 -- sh <<$(echo E)\nredis-cli flushall\n$(echo E)'
+blocks $'oc exec -i redis-0 -- sh <<`echo E`\nredis-cli flushall\n`echo E`'
+blocks $'oc exec -i redis-0 -- sh <<${x y}\n${x\nredis-cli flushall\n${x y}'
+blocks $'oc apply -f - <<$[1 + 2]\nargocd.argoproj.io/deletion-approved: x\n$[1 + 2]'
+blocks $'oc exec -i redis-0 -- sh <<\'EO\nF\'\nredis-cli flushall'
+blocks $'cat <<$(echo E) > notes.txt\nbody\n$(echo E)\noc delete ns web'
+blocks $'cat <<`echo E` > notes.txt\nbody\n`echo E`\noc delete ns web'
+# A word that ends at a metacharacter is a known one: `)` and `>` glued to
+# it end it, as blanks do.
+allows $'(cat <<\'EOF\') > notes.txt\noc delete ns web\nEOF'
+allows $'cat <<\'EOF\'>notes.txt\noc delete ns web\nEOF'
+
+# A heredoc whose delimiter line never comes runs to the end of the text:
+# bash ends it there with only a warning and still feeds the body to its
+# command, under eval too, which runs the Bash tool's commands. Before,
+# such a body was read as host commands.
+blocks $'oc exec -i redis-backend2-0 -- sh <<\'EOF\'\nredis-cli FLUSHALL'
+blocks $'oc exec -i mysql-0 -- sh <<\'EOF\'\nmysql -e \'drop database x\''
+blocks $'oc rsh redis-0 <<EOF\nredis-cli flushall'
+blocks $'oc run -i tmp --image=redis --restart=Never -- sh <<\'EOF\'\nredis-cli -h redis-backend2 FLUSHALL'
+blocks $'oc apply -f - <<\'EOF\'\nmetadata:\n  annotations:\n    argocd.argoproj.io/deletion-approved: "x"'
+blocks $'oc apply -f - <<\'EOF\'\nspec:\n  containers:\n  - command: [redis-cli, -h, redis-backend2, FLUSHALL]'
+blocks $'xargs oc <<\'EOF\'\ndelete ns web'
+blocks $'oc exec -i redis-0 -- sh <<\'A\' <<\'B\'\nls\nA\nredis-cli flushall'
+# The reading that takes every operator takes such a heredoc after quoting
+# the model does not read too, also when it has read past a `<<` inside
+# quotes, whose skipped lines may have changed the quoting (here they close
+# the single quote and open a double one).
+blocks $'echo don\\\'t\noc exec -i redis-0 -- sh <<EOF\nredis-cli flushall'
+blocks $'echo \'a <<X\n\' ; echo a\\ b "\nX\n" ; oc exec -i redis-0 -- sh <<EOF\nredis-cli flushall'
+# Its body is data where data reads it, as bash reads it.
+allows $'git commit -F - <<\'EOF\'\nrepo: oc delete ns web is blocked'
+allows $'cat <<\'EOF\' > notes.txt\noc delete ns web'
+# A `<<` that the model knows to be text never runs to the end, whether its
+# word is known or not: inside a quoted string (the -c script is read for
+# its heredoc on its own), also one opened on an earlier line or on the
+# line a pipeline goes on with after a body, which both readings follow;
+# in a comment; and in an arithmetic command, a $((...)), a parameter
+# expansion or a $[...], where bash reads it as a shift or as text. The
+# psql after it runs on this host, without a host, so it is local.
+allows $'sh -c "cat > notes.txt <<\'EOF\'\noc delete ns web\nEOF"'
+allows $'oc exec pod -- echo "a <<\'b"\npsql -c "select 1"'
+allows $'echo \'\nuse sh <<EOF here\noc delete ns web is text\n\''
+allows $'cat <<\'A\' |\nx\nA\ngrep "y\nsh <<EOF z\noc delete ns web is text"'
+allows $'oc exec pod -- true # see <<EOF\npsql -c "select 1"'
+allows $'oc exec pod -- echo $((1<<2))\npsql -c "select 1"'
+allows $'oc exec pod -- true; ((n<<2))\npsql -c "select 1"'
+allows $'oc exec pod -- echo ${x//<</y}\npsql -c "select 1"'
+allows $'oc exec pod -- echo $[1<<2]\npsql -c "select 1"'
+blocks $'# a comment with <<\'X\'\noc delete ns web'
+
+# Nor does such a `<<` hide the lines after it, up to a line with its word,
+# in either reading: the model used to read `((`, `${` and `$[` as plain
+# characters, so it was sure that the `<<` in `((n<<X))` was an operator,
+# and `oc delete ns web` passed as the body, although bash runs it.
+blocks $'((n<<X)); true\noc delete ns web\nX'
+blocks $'echo ${x//<<X/}; true\noc delete ns web\nX'
+blocks $'echo $[1<<X]; true\noc delete ns web\nX'
+blocks $'((n<<2)); true\noc delete ns web'
+blocks $'echo ${x//<</y}; true\noc delete ns web'
+blocks $'echo $[1<<2]; true\noc delete ns web'
+# Closed ones with plain content leave the quoting where it was, so a
+# heredoc after them is still sure.
+allows $'for ((i = 0; i < 3; i++)); do echo "$i"; done\ngit commit -F - <<\'EOF\'\nrepo: oc delete ns web is blocked\nEOF'
+allows $'echo "${x:-$y}" ${#arr[@]} ${x:-$y}\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'echo $[1 + 2]\ncat <<\'EOF\' > notes.txt\noc delete ns web\nEOF'
+allows $'x=$((1 << 3))\ngit commit -F - <<\'EOF\'\nrepo: oc delete ns web is blocked\nEOF'
 
 # ------------------------------------------------------------- check 1: data-wiping db subcommands
 
@@ -2331,6 +2759,201 @@ reason_mentions 'oc exec deploy/redis-backend2 -- redis-cli FLUSHALL' 'Agents ne
 reason_mentions 'oc debug deploy/redis-backend2 -- redis-cli' 'A Redis client on this host is not blocked'
 reason_mentions 'oc exec deploy/redis-backend2 -- redis-benchmark -n 1 flushall' '`redis-benchmark` runs inside the cluster through `oc exec`'
 
+# ------------------------------------------------------------- check 2: the other Redis clients
+
+# redis-benchmark, valkey-cli and keydb-cli are blocked wherever redis-cli
+# is: redis-benchmark ships in the clusters' Redis image and sends any
+# command it is given (`redis-benchmark -n 1 FLUSHALL` empties the
+# database), and the others are the clients of Redis's protocol-compatible
+# forks. Each one is a trigger word, so the chunk of a long pipeline that
+# holds only the echo is still read. On the agent's own host none of them
+# is checked, and a pod or file named like one is not the command part.
+for client in redis-benchmark valkey-cli keydb-cli; do
+  blocks "oc exec deploy/redis-backend2 -- $client -n 1 FLUSHALL"
+  blocks "oc rsh deploy/redis-backend2 $client flushall"
+  blocks "oc debug deploy/redis-backend2 -- /usr/local/bin/$client"
+  blocks "oc exec redis-0 -- sh -c 'cd /data;$client flushall'"
+  blocks "echo '$client flushall' | oc exec -i redis-0 -- sh"
+  blocks "echo '$filler $client flushall' | oc exec -i redis-0 -- sh"
+  blocks "oc run tmp --image=redis:6.2-alpine -- $client -h redis-backend2 flushall"
+  blocks "oc create job flush --image=redis:6.2-alpine -- $client -h redis-backend2 flushall"
+  blocks "oc apply -f - <<< 'command: [$client, -h, redis-backend2, flushall]'"
+  allows "$client -h localhost ping"
+  allows "oc exec $client-0 -- ls /data"
+  allows "oc exec redis-0 -- cat /data/$client.log"
+done
+reason_mentions 'oc exec deploy/redis-backend2 -- redis-benchmark -n 1 FLUSHALL' '`redis-benchmark` runs inside the cluster through `oc exec`'
+allows 'podman run --rm docker.io/library/redis:6.2-alpine redis-benchmark -n 1 -q PING'
+
+# ------------------------------------------------------------- check 2: a Redis client in a pod the agent starts
+
+# oc run gives the pod every positional word after the pod's name, before
+# `--` and after it, as its arguments or (with --command) its command.
+blocks 'oc run tmp -i --image=redis:6.2-alpine -- redis-cli -h redis-backend2 FLUSHALL'
+blocks 'oc run tmp --rm -it --restart=Never --image=redis:6.2-alpine -- redis-cli -h redis-backend2 ping'
+blocks 'oc run tmp --image=redis:6.2-alpine --command -- /usr/local/bin/redis-cli -h redis-backend2 flushall'
+blocks 'oc run tmp --image=redis redis-cli -h redis-backend2 flushall'
+# A client before `--` runs too: cobra keeps the words before it, and the
+# image's entrypoint runs a first argument that is not an option.
+blocks 'oc run tmp --image=redis --command redis-cli -- -h redis-backend2 FLUSHALL'
+blocks 'oc run tmp --image=redis:6.2-alpine redis-cli -- -h redis-backend2 FLUSHALL'
+blocks 'oc run tmp -i --rm --restart=Never --image=redis redis-benchmark -- -h redis-backend2 -n 1 FLUSHALL'
+blocks "oc run tmp --image=redis sh -- -c 'redis-cli flushall'"
+blocks 'oc run tmp --image=redis --env A=b -- redis-cli -- flushall'
+blocks 'oc create job flush --image=redis redis-cli -- -h redis-backend2 FLUSHALL'
+allows 'oc run tmp --image=redis redis-server -- --port 6380'
+allows 'oc run tmp --image=redis --command redis-server -- --save ""'
+blocks 'oc run tmp --image redis --restart Never redis-cli flushall'
+blocks 'oc run --rm tmp --image=redis redis-cli flushall'
+blocks 'oc run tmp --new-option v --image=redis redis-cli flushall'
+blocks 'oc run tmp --image=redis -- sh -c "redis-cli -h redis-backend2 flushall"'
+blocks "oc run tmp --image=redis -- sh -c 'cd /data;redis-cli flushall'"
+blocks "oc run tmp --image=redis -- 'redis-cli' flushall"
+blocks 'oc run tmp --image=redis -- redis\-cli flushall'
+blocks "oc run tmp --image=redis -- \$'redis\\x2dcli' flushall"
+blocks 'oc run tmp --image=redis -- env REDISCLI_HISTFILE=/dev/null redis-cli flushall'
+blocks 'oc run tmp --image=redis -- timeout 5 redis-cli ping'
+blocks 'oc run tmp --env "GREETING=hello there" --image=redis -- redis-cli flushall'
+blocks 'oc -n verseghy-website run tmp --image=redis -- redis-cli flushall'
+blocks 'oc --image redis run tmp -- redis-cli flushall'
+blocks 'KUBECONFIG=edge.kubeconfig oc run tmp --image=redis -- redis-cli flushall'
+blocks 'timeout 60 oc run tmp --image=redis -- redis-cli flushall'
+blocks "sh -c 'oc run tmp --image=redis -- redis-cli flushall'"
+blocks "ssh bastion 'oc run tmp --image=redis -- redis-cli flushall'"
+blocks 'echo redis-backend2 | xargs -I{} oc run tmp --image=redis -- redis-cli -h {} flushall'
+blocks "echo 'redis-cli flushall' | xargs oc run tmp --image=redis -- sh -c"
+blocks 'oc run tmp --image=redis -- oc exec pg-0 -- psql'
+blocks "parallel 'oc run {} --image=redis -- redis-cli flushall' ::: tmp"
+blocks "parallel 'oc create job {} --image=redis -- redis-cli flushall' ::: flush"
+# The --overrides JSON, which can set the container's command or arguments,
+# also before the verb and with JSON escapes.
+blocks "oc run tmp --image=redis --overrides='{\"spec\":{\"containers\":[{\"name\":\"tmp\",\"image\":\"redis\",\"command\":[\"redis-cli\",\"-h\",\"redis-backend2\",\"FLUSHALL\"]}]}}'"
+blocks "oc run tmp --image=redis --overrides '{\"spec\":{\"containers\":[{\"name\":\"tmp\",\"image\":\"redis\",\"args\":[\"sh\",\"-c\",\"redis-cli flushall\"]}]}}'"
+blocks "oc run tmp --image=redis --override-type=strategic --overrides='{\"spec\":{\"containers\":[{\"name\":\"tmp\",\"command\":[\"/usr/local/bin/redis-benchmark\",\"-n\",\"1\",\"FLUSHALL\"]}]}}'"
+blocks "oc --overrides '{\"spec\":{\"containers\":[{\"name\":\"tmp\",\"command\":[\"redis-cli\"]}]}}' run tmp --image=redis"
+blocks "oc run tmp --image=redis --overrides='{\"spec\":{\"containers\":[{\"name\":\"tmp\",\"command\":[\"redis\\u002dcli\"]}]}}'"
+# Shell quoting inside a script string of the JSON, which the pod's shell
+# removes, and JSON that a heredoc gives --overrides through cat.
+blocks "oc run tmp --image=redis --overrides='{\"spec\":{\"containers\":[{\"name\":\"tmp\",\"command\":[\"sh\",\"-c\",\"redis-c\\\"l\\\"i flushall\"]}]}}'"
+blocks $'oc run tmp --image=redis --overrides="$(cat <<\'EOF\'\n{"spec":{"containers":[{"name":"tmp","image":"redis","command":["redis-cli","flushall"]}]}}\nEOF\n)"'
+# The text oc run passes to the pod on stdin: a heredoc, also through cat,
+# a here-string and piped echo or printf text, read for a Redis client
+# whatever the pod's program, which errs towards blocking.
+blocks $'oc run -i --rm tmp --image=redis --restart=Never -- sh <<\'EOF\'\nredis-cli -h redis-backend2 flushall\nEOF'
+blocks $'oc run -i --rm tmp --image=redis --restart=Never -- python3 - <<\'EOF\'\nimport os; os.system("redis-cli flushall")\nEOF'
+# The text is also matched by name, so a client in a list or JSON counts.
+blocks $'oc run -i tmp --image=python -- python3 <<\'EOF\'\nimport subprocess; subprocess.run(["redis-cli", "FLUSHALL"])\nEOF'
+blocks "oc run -i tmp --image=node -- node <<< 'require(\"child_process\").execFileSync(\"redis-benchmark\",[\"-n\",\"1\",\"FLUSHALL\"])'"
+allows $'oc run -i tmp --image=python -- python3 <<\'EOF\'\nprint(["redis-server", "--port", "6380"])\nEOF'
+blocks $'cat <<\'EOF\' | oc run -i --rm tmp --image=redis --restart=Never -- sh\nredis-cli -h redis-backend2 flushall\nEOF'
+blocks $'echo start\noc run -i --rm tmp --image=redis -- sh <<\'EOF\'\nredis-cli flushall\nEOF'
+blocks "oc run -i --rm tmp --image=redis -- sh <<< 'redis-cli -h redis-backend2 flushall'"
+blocks "echo 'redis-cli -h redis-backend2 flushall' | oc run -i --rm tmp --image=redis -- sh"
+blocks "printf 'cd /data\nredis-cli flushall\n' | oc run -i tmp --image=redis -- sh"
+blocks "cat <<< 'redis-cli flushall' | oc run -i tmp --image=redis -- sh"
+blocks "echo '$filler redis-cli flushall' | oc run -i tmp --image=redis -- sh"
+# The pod's shell also decodes $'...' quoting, which hides the name from the
+# name match, so the text is read as shell words too (an octal escape here,
+# which no patch decoder reads).
+blocks $'oc run -i tmp --image=redis -- sh <<\'EOF\'\n$\'\\162edis-cli\' flushall\nEOF'
+blocks "printf '%s\\n' \"\$'\\\\162edis-cli' flushall\" | oc run -i tmp --image=redis -- sh"
+# oc create job, cronjob, deployment and deploymentconfig, and their aliases,
+# take the pod's command after `--`; the subcommand is found as oc's verb is,
+# behind an option the hook does not know or a boolean of create's own.
+blocks 'oc create job flush --image=redis:6.2-alpine -- redis-cli -h redis-backend2 FLUSHALL'
+blocks 'oc create cronjob flush --image=redis --schedule="*/5 * * * *" -- redis-cli -h redis-backend2 flushall'
+blocks "oc create cronjob flush --image=redis --schedule '*/5 * * * *' -- redis-cli flushall"
+blocks "oc create --schedule '*/5 * * * *' cronjob flush --image=redis -- redis-cli flushall"
+blocks "oc create --schedule '*/5 * * * *' cronjob flush --image=redis -- sh -c 'redis-cli flushall'"
+blocks 'oc create cj flush --image=redis --schedule=@hourly -- redis-cli flushall'
+blocks 'oc create deployment flush --image=redis -- redis-cli flushall'
+blocks 'oc create deploy flush --image=redis -r 1 -- redis-cli flushall'
+blocks 'oc create deploymentconfig flush --image=redis -- redis-cli flushall'
+blocks 'oc create dc flush --image=redis -- sh -c "redis-cli flushall"'
+blocks 'oc -n verseghy-website create job flush --image=redis -- /usr/local/bin/redis-cli flushall'
+blocks 'oc create --save-config job flush --image=redis -- redis-cli flushall'
+blocks 'oc create --new-option v job flush --image=redis -- redis-cli flushall'
+blocks 'oc create job flush --image=redis redis-cli flushall'
+blocks "sh -c 'oc create job flush --image=redis -- redis-cli flushall'"
+# A Redis client in an inline manifest that oc apply, oc create or oc
+# replace reads, in every form of the deletion-approved case above, as a
+# command, as arguments, as a block list, in JSON and with escapes.
+job_manifest=$'apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: flush\nspec:\n  template:\n    spec:\n      restartPolicy: Never\n      containers:\n      - name: flush\n        image: redis:6.2-alpine\n        command: ["redis-cli", "-h", "redis-backend2", "FLUSHALL"]'
+blocks "oc apply -f - <<'EOF'"$'\n'"$job_manifest"$'\n'"EOF"
+blocks "oc create -f - <<EOF"$'\n'"$job_manifest"$'\n'"EOF"
+blocks "cat <<'EOF' | oc replace -f -"$'\n'"$job_manifest"$'\n'"EOF"
+blocks "oc apply -f - --dry-run=server <<'EOF'"$'\n'"$job_manifest"$'\n'"EOF"
+blocks "oc apply -f - <<< '$job_manifest'"
+blocks "echo '$job_manifest' | oc apply -f -"
+blocks "printf '%s\n' '$job_manifest' | oc create -f -"
+blocks "cat <<< '$job_manifest' | oc apply -f -"
+blocks "oc apply -f <(echo '$job_manifest')"
+blocks $'oc apply -f - <<\'EOF\'\nkind: Pod\nspec:\n  containers:\n  - name: flush\n    image: redis\n    args: [sh, -c, "cd /data; redis-cli flushall"]\nEOF'
+blocks $'oc apply -f - <<\'EOF\'\nkind: Pod\nspec:\n  containers:\n  - name: flush\n    image: redis\n    command:\n    - /usr/local/bin/redis-cli\n    - FLUSHALL\nEOF'
+blocks "echo '{\"kind\":\"Pod\",\"spec\":{\"containers\":[{\"name\":\"flush\",\"image\":\"redis\",\"command\":[\"redis-cli\",\"FLUSHALL\"]}]}}' | oc apply -f -"
+blocks "oc apply -f - <<< 'spec: {containers: [{name: x, image: redis, command: [\"redis\\x2dcli\", FLUSHALL]}]}'"
+# A name that a YAML escaped line break folds across lines, and shell
+# quoting inside a script string, which the pod's shell removes.
+blocks $'oc apply -f - <<\'EOF\'\nspec:\n  containers:\n  - command: ["redis-\\\n     cli", FLUSHALL]\nEOF'
+blocks $'oc apply -f - <<\'EOF\'\nspec:\n  containers:\n  - command: [sh]\n    args: ["-c", "redis-c\'l\'i FLUSHALL"]\nEOF'
+blocks "echo '{\"spec\":{\"containers\":[{\"args\":[\"-c\",\"redis-c\\\"l\\\"i FLUSHALL\"]}]}}' | oc create -f -"
+allows $'oc apply -f - <<\'EOF\'\nspec:\n  containers:\n  - command: [redis-server]\n    args: ["--save", ""]\nEOF'
+# A pod or image named like a client, a client only named as a value of an
+# option, the server, a database command (which keeps its target check
+# there, as everywhere), what only the command text of another program shows,
+# a manifest without a client and one written to a file stay allowed.
+allows 'oc run redis-cli --image=redis:6.2-alpine -- redis-server'
+allows 'oc run redis-cli --image=redis:6.2-alpine'
+allows 'oc run cache --image=redis:6.2-alpine'
+allows 'oc run tmp --image=quay.io/example/redis-cli'
+# The pod's name after an option that takes a value (see oc_value_options,
+# which lists run's).
+allows 'oc run --restart Never redis-cli --image=redis:6.2-alpine'
+allows "oc run --overrides '{}' redis-cli --image=redis:6.2-alpine"
+# Text that xargs passes to oc run or oc apply is their arguments, not what
+# the pod or oc reads on stdin.
+allows 'echo redis-cli | xargs oc run --image=redis:6.2-alpine'
+allows 'echo deletion-approved.yaml | xargs oc apply -f'
+allows 'oc run tmp --image redis-cli -- sleep 3600'
+allows 'oc run tmp --image=quay.io/example/redis-cli -- sleep 3600'
+allows 'oc run tmp --image=redis -l app=redis-cli -- redis-server'
+allows 'oc run tmp --image=redis --env=CLIENT=redis-cli -- redis-server'
+allows 'oc run tmp --image=redis --restart=Never -- cat /data/redis-cli.log'
+allows "oc run tmp --image=redis --overrides='{\"metadata\":{\"labels\":{\"app\":\"cache\"}}}' -- redis-server"
+allows 'oc run psql-client --image=postgres:18 -- psql -h localhost -c "select 1"'
+blocks 'oc run psql-client --image=postgres:18 -- psql -h postgres -c "select 1"'
+allows $'oc run -i tmp --image=busybox -- tee /tmp/notes <<\'EOF\'\npsql -h postgres and oc delete ns web are only text here\nEOF'
+allows 'oc create deployment cache --image=redis:6.2-alpine -- redis-server --save ""'
+allows 'oc create deployment redis-cli --image=redis'
+allows 'oc create job --from=cronjob/redis-cli backup-now'
+allows 'oc create configmap redis-cli-config --from-literal=client=redis-cli'
+allows 'oc create service clusterip redis --tcp=6379:6379'
+allows "oc apply -f - <<'EOF'"$'\n'"${job_manifest/redis-cli/redis-server}"$'\n'"EOF"
+allows $'oc apply -f - <<\'EOF\'\nkind: Service\nmetadata:\n  name: redis-cli-0\nEOF'
+allows $'oc apply -f - <<\'EOF\'\nkind: ConfigMap\nmetadata:\n  name: my-redis-cli\nEOF'
+allows "cat > job.yaml <<'EOF'"$'\n'"$job_manifest"$'\n'"EOF"
+allows "echo 'redis-cli ping' > notes.txt; oc run tmp --image=busybox -- sleep 1"
+allows "git commit -m 'repo: block redis-cli in oc run and oc create job'"
+allows $'git commit -F - <<\'EOF\'\nrepo: block a Redis client in a new pod\n\noc run tmp --image=redis -- redis-cli FLUSHALL\nEOF'
+reason_mentions 'oc run tmp --image=redis -- redis-cli flushall' 'the pod that `oc run` starts'
+reason_mentions 'oc create job flush --image=redis -- redis-cli flushall' 'the pod that `oc create job` starts'
+reason_mentions 'oc create cj flush --image=redis --schedule=@hourly -- redis-cli flushall' '`oc create cj`'
+reason_mentions "oc run tmp --image=redis --overrides='{\"spec\":{\"containers\":[{\"name\":\"tmp\",\"command\":[\"redis-cli\"]}]}}'" 'in its --overrides'
+reason_mentions "oc apply -f - <<< '$job_manifest'" 'reads a manifest from the command text that names `redis-cli`'
+
+# This repository's own checks read a new pod's command too: a Laravel or
+# sea-orm-cli wipe there is blocked by check 1, and a database client with
+# a target that is not local by check 2's target check. A database or wipe
+# command in an inline manifest is not read, since only the Redis clients
+# and the deletion-approved key count there; CLAUDE.md lists that gap.
+blocks 'oc run tmp --image=quay.io/verseghy/backend -- php artisan migrate:fresh --force'
+blocks 'oc create job wipe --image=quay.io/verseghy/backend -- php artisan db:wipe'
+blocks 'oc run tmp --image=quay.io/example/sea-orm-cli -- sea migrate fresh -u postgres://app@postgres/app'
+blocks 'oc run tmp --image=mariadb:11 -- mariadb -h mysql -e "drop database website"'
+blocks $'oc run -i tmp --image=mysql:8 -- sh <<\'EOF\'\nmysql -h mysql -e "drop database website"\nEOF'
+allows $'oc apply -f - <<\'EOF\'\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n      - command: [php, artisan, "migrate:fresh", --force]\nEOF'
+allows $'oc apply -f - <<\'EOF\'\nkind: Pod\nspec:\n  containers:\n  - command: [mysql, -h, mysql, -e, "drop database website"]\nEOF'
+
 # ------------------------------------------------------------- check 2: oc port-forward to a database
 
 # A port-forward makes the cluster database answer on localhost, which check 2
@@ -2729,6 +3352,92 @@ allows "\"\$(echo 'oc delete')\" ns verseghy"
 allows 'x="$(echo oc)" && echo "$x"'
 allows '"$(echo oc)"x delete ns verseghy'
 
+# ------------------------------------------------------------- the gaps that stay open
+
+# What the checks leave out on purpose, pinned as allowed, so that closing a
+# gap is a deliberate change that the maintainer accepts first rather than a
+# side effect: a raw socket, manifest files, editors, a Redis client patched
+# into an existing pod spec, text passed through oc attach, an image whose
+# entrypoint is a Redis client, variables, brace lists, globs, and inline
+# manifests that change finalizers or a reclaim policy. CLAUDE.md,
+# "Guardrails", lists them; its standing rules hold there.
+allows "printf 'FLUSHALL\\r\\n' | oc exec -i deploy/redis-backend2 -- nc -w 1 127.0.0.1 6379"
+allows 'oc exec deploy/redis-backend2 -- sh -c "printf FLUSHALL | nc 127.0.0.1 6379"'
+allows 'oc apply -f job.yaml'
+allows "cat > app.yaml <<'EOF'"$'\n'"$app_manifest"$'\n'"EOF"$'\n'"oc apply -f app.yaml"
+allows 'oc apply -k overlays/cleanup'
+allows 'oc edit application verseghy-website-frontend'
+allows 'argocd app edit verseghy-website-frontend'
+allows "oc patch deploy/redis-backend2 --type json -p '[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/command\",\"value\":[\"redis-cli\",\"FLUSHALL\"]}]'"
+allows 'C=redis-cli; oc exec deploy/redis-backend2 -- $C flushall'
+allows 'oc run tmp --image=redis -- "$CLIENT" flushall'
+allows 'oc exec deploy/redis-backend2 -- {redis-cli,flushall}'
+allows 'oc exec deploy/redis-backend2 -- /usr/local/bin/redis-cl? flushall'
+allows $'oc apply -f - <<\'EOF\'\nkind: PersistentVolumeClaim\nmetadata:\n  name: data\n  finalizers: []\nEOF'
+allows $'oc apply -f - <<\'EOF\'\nkind: PersistentVolume\nmetadata:\n  name: pv-1\nspec:\n  persistentVolumeReclaimPolicy: Delete\nEOF'
+allows "oc get pvc data -o json | jq 'del(.metadata.finalizers)' | oc replace -f -"
+# Paths outside the verbs that the pod checks read, which the maintainer
+# has to accept before the hook blocks them: oc adm must-gather, which
+# starts a pod with the image and command it is given; argocd app create
+# reading an Application from stdin or a process substitution; oc set probe
+# and oc set deployment-hook, which put a command into an existing pod
+# spec; and oc attach, below.
+allows 'oc adm must-gather --image=redis -- redis-cli -h redis-backend2 FLUSHALL'
+allows $'argocd app create --upsert -f - <<\'EOF\'\nmetadata:\n  name: verseghy-website-frontend\n  annotations:\n    argocd.argoproj.io/deletion-approved: x\nEOF'
+allows "argocd app create --upsert -f <(echo 'metadata: {annotations: {argocd.argoproj.io/deletion-approved: x}}')"
+allows 'oc set probe deploy/redis-backend2 --liveness -- redis-cli ping'
+allows 'oc set deployment-hook dc/redis-backend2 --pre -c redis -- redis-cli flushall'
+# oc attach -i passes its stdin to the main process of a container that is
+# already running, so a pod started with --stdin and a shell (`oc run tmp
+# --image=redis --stdin --attach=false --restart=Never -- sh`) runs the
+# text a later `oc attach -i tmp` gives it, and a running Redis client
+# runs the commands it gets. Its text is not read as oc exec's is, because
+# attach is not among the verbs the maintainer named for these checks.
+allows 'oc run tmp --image=redis --stdin --attach=false --restart=Never -- sh'
+allows "echo 'redis-cli -h redis-backend2 FLUSHALL' | oc attach -i tmp"
+allows "oc attach -i tmp <<< 'redis-cli -h redis-backend2 FLUSHALL'"
+allows $'oc attach -i tmp <<\'EOF\'\nredis-cli -h redis-backend2 FLUSHALL\nEOF'
+allows "echo \"psql -h postgres -c 'drop database x'\" | oc attach -i tmp"
+allows 'echo FLUSHALL | oc attach -i redis-client-0'
+# An image's name does not count (see the command part rules), so a pod
+# started from an image whose entrypoint is a Redis client, with only its
+# arguments in the command part, passes.
+allows 'oc run tmp --image=registry.example.org/tools/redis-cli:7 -- -h redis-backend2 FLUSHALL'
+allows 'oc create job tmp --image=registry.example.org/tools/redis-cli:7 -- -h redis-backend2 FLUSHALL'
+# Spellings of the stdin and heredoc readings that the hook does not read:
+# a cat here-string inside a group, and a heredoc in a group that does not
+# close on the line after the body.
+allows "{ cat <<< 'redis-cli flushall'; } | oc exec -i deploy/redis-backend2 -- sh"
+allows $'( cat <<\'EOF\'\nargocd.argoproj.io/deletion-approved: x\nEOF\necho done\n) | oc apply -f -'
+
+# ------------------------------------------------------------- false positives of the heredoc receivers
+
+# The receiving line of a heredoc is read with its quotes removed, so a
+# title that names oc run, oc apply, oc create or oc replace makes the body
+# after it count as the pod's stdin or a manifest; the reason says how to
+# pass such a body instead, which stays allowed.
+blocks $'gh pr create --title "repo: block redis clients in oc run" --body "$(cat <<\'EOF\'\nBlocks redis-cli in new pods.\nEOF\n)"'
+blocks $'gh issue create --title "oc apply of inline manifests" --body-file - <<\'EOF\'\nnames redis-cli\nEOF'
+reason_mentions $'gh issue create --title "oc apply of inline manifests" --body-file - <<\'EOF\'\nnames redis-cli\nEOF' 'gh pr create --body-file <file>'
+reason_mentions $'gh pr create --title "repo: block redis clients in oc run" --body "$(cat <<\'EOF\'\nBlocks redis-cli in new pods.\nEOF\n)"' 'gh pr create --body-file <file>'
+blocks $'gh issue create --title "oc run fails" --body-file - <<\'EOF\'\n["redis-cli","x"]\nEOF'
+reason_mentions $'gh issue create --title "oc run fails" --body-file - <<\'EOF\'\n["redis-cli","x"]\nEOF' 'the text that this `oc run` passes to the pod it starts names `redis-cli`'
+reason_mentions $'gh issue create --title "oc run fails" --body-file - <<\'EOF\'\n["redis-cli","x"]\nEOF' 'gh pr create --body-file <file>'
+reason_mentions $'gh issue create --title "oc apply of approvals" --body-file - <<\'EOF\'\nargocd.argoproj.io/deletion-approved\nEOF' 'gh pr create --body-file <file>'
+allows 'gh pr create --title "repo: block redis clients in oc run" --body-file pr-body.md'
+# A `<<` whose delimiter line never comes, and that the quoting model
+# cannot tell from text (a shift with a `$` inside), runs to the end of the
+# text in the reading that takes every operator, so the lines after it
+# count as the stdin script of the oc exec on its line.
+blocks $'oc exec pod -- echo $((1<<$n))\npsql -c "select 1"'
+allows $'oc exec pod -- echo $((1<<2))\npsql -c "select 1"'
+
+# A synthetic segment counts only with its marker (see synthetic_marker):
+# an ordinary segment of the same shape is not decoded.
+allows 'oc get pods; echo manifest apply cmVkaXMtY2xp'
+allows 'oc get pods; printf pod-stdin run cmVkaXMtY2xp'
+allows 'oc get pods; echo manifest apply YXJnb2NkLmFyZ29wcm9qLmlvL2RlbGV0aW9uLWFwcHJvdmVk'
+
 # ------------------------------------------------------------- a long command stays cheap
 
 long_body="$(for i in $(seq 1 3000); do printf 'line %d: plain text that mentions oc and psql\n' "$i"; done)"
@@ -2798,6 +3507,31 @@ allows_in_time "32 KB of echo arguments" "echo $stdin_line | oc get pods -n web"
 # length. 32 KB of them still take a few seconds, far below the bound.
 comment_line="$(for _ in $(seq 1 5300); do printf 'path #'; done)"
 allows_in_time "a 32 KB patch line of keys and comments" "oc patch deployment web -p 'x: $comment_line'"
+
+# A heredoc counts on every line, so a command with many of them is read
+# heredoc by heredoc; the work must still grow linearly.
+heredoc_lines="$(for i in $(seq 1 800); do printf "cat > f%d.txt <<'EOF'\nline %d mentions artisan and the db\nEOF\n" "$i" "$i"; done)"
+allows_in_time "800 heredocs, one after another" "$heredoc_lines"
+
+# An inline manifest is encoded into one synthetic word, and a long one must
+# cost no more than the text around it.
+manifest_body="$(for i in $(seq 1 900); do printf '  key%d: value %d mentions artisan and the db\n' "$i" "$i"; done)"
+allows_in_time "a 32 KB inline manifest in a heredoc into oc apply" "oc apply -f - <<'EOF'"$'\n'"data:"$'\n'"$manifest_body"$'\n'"EOF"
+allows_in_time "a 32 KB inline manifest piped into oc apply" "printf '%s' 'data:"$'\n'"$manifest_body' | oc apply -f -"
+
+# Every `<<` is looked at with the quoting model, and one whose delimiter
+# never comes makes the reader search the rest of the text (and take that
+# rest as its body, unless the model knows the `<<` to be text), so many of
+# them must stay cheap too: arithmetic shifts, which the model knows to be
+# text, and quoted ones, which make the hook read the command twice. A
+# backslash in the word after `<<` must not make the quoting unknown for
+# the heredocs after it either.
+heredoc_bs_lines="$(for i in $(seq 1 800); do printf 'cat > f%d.txt <<\\EOF\nline %d mentions artisan and the db\nEOF\n' "$i" "$i"; done)"
+allows_in_time "800 heredocs with <<\\EOF, one after another" "$heredoc_bs_lines"
+unclosed_lines="$(for i in $(seq 1 1000); do printf 'echo $((1<<%d)) mentions oc get pods\n' "$i"; done)"
+allows_in_time "1000 lines with an unclosed <<" "$unclosed_lines"
+quoted_lines="$(for i in $(seq 1 400); do printf "echo 'a <<X%d' && oc get pods \"it's\"\nX%d\n" "$i" "$i"; done)"
+allows_in_time "400 quoted << operators, each with its delimiter" "$quoted_lines"
 
 # ------------------------------------------------------------- summary
 
