@@ -1,0 +1,209 @@
+# backend3: one process per pod serves HTTP and runs the database job queue
+# (the image's default command, `start --server-and-worker`, which is not
+# overridden here). Scheduled work runs in the CronJobs next to this file,
+# never in an in-process scheduler.
+#
+# Boot runs no migration (DB_AUTO_MIGRATE is false): the PreSync Job in
+# job-db-migrate.yaml migrates the database before Argo CD applies a new pod
+# template, so a pod start never changes the schema.
+#
+# The environment is the same in every backend3 process: this Deployment,
+# job-db-migrate.yaml and both CronJobs. config/production.yaml in the image
+# reads it, and every command, `jobs tidy` and `db migrate` included, refuses
+# to start when a variable without a default (HOST, DATABASE_URL, JWT_SECRET,
+# TOTP_ENCRYPTION_KEY) is missing. It also refuses to start when JWT_SECRET
+# or TOTP_ENCRYPTION_KEY is not standard base64 (`=` padding, one line, no
+# trailing newline) of at least 64 bytes, or is one of the throwaway keys
+# that backend3 publishes for local runs. With such a secret the migration
+# Job fails, and with it the sync, before any new pod starts; a pod that
+# restarts outside a sync does not start again. Change all four files
+# together.
+#
+# It runs under restricted-v2 with an arbitrary UID. The pod template requires
+# that SCC, so a higher-priority SCC granted later, such as anyuid, cannot
+# take over.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend3
+  # The new pod must be ready before the old one stops, so a deployment does
+  # not take backend3 offline. The pod holds no ReadWriteOnce volume yet.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: backend3
+      annotations:
+        openshift.io/required-scc: restricted-v2
+    spec:
+      automountServiceAccountToken: false
+      # Service links would add variables for every Service in the namespace
+      # to an environment that backend3's configuration reads.
+      enableServiceLinks: false
+      # An upload may run for up to the 120 s timeout of the /api/admin Route.
+      # backend3 stops on SIGTERM after its requests in flight have finished,
+      # so a rollout lets an upload that has started finish.
+      terminationGracePeriodSeconds: 130
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend3
+          # The tag comes from the images entry in kustomization.yaml.
+          image: ghcr.io/verseghy/website_backend3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5150
+            # /metrics, for the hub's monitoring to scrape later. The Service
+            # exposes it inside the cluster; no Route targets it.
+            - name: metrics
+              containerPort: 9464
+          env:
+            - name: LOCO_ENV
+              value: production
+            # The public URL of backend3 itself.
+            - name: HOST
+              value: https://backend3.microshift.verseghy-gimnazium.net
+            # backend3's own role, which owns the verseghy database; never the
+            # PostgreSQL superuser. The password is letters and digits only,
+            # so it goes into the URL without escaping.
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: postgres-website_backend3-password
+            - name: DATABASE_URL
+              value: postgres://website_backend3:$(DB_PASSWORD)@postgres.verseghy.svc.cluster.local:5432/verseghy
+            # Signs the admin session tokens.
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backend3-jwt-secret
+            # Encrypts the admins' stored TOTP secrets.
+            - name: TOTP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backend3-totp-key
+            # Signs and verifies stored rich text. Set before backend3 reads
+            # it, so that production keeps starting when backend3 begins to
+            # require it.
+            - name: CONTENT_MAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: backend3-content-mac-key
+            # The legacy MySQL source of the one-time import. Outside the
+            # cut-over window the value is `disabled`: no import source. Pods
+            # read it only at start.
+            - name: IMPORT_SOURCE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: import-source-database-url
+            # The public site and the public base of media URLs. backend3 has
+            # no default for either.
+            - name: PUBLIC_SITE_URL
+              value: https://verseghy-gimnazium.net
+            - name: MEDIA_PUBLIC_BASE_URL
+              value: https://backend.microshift.verseghy-gimnazium.net/storage
+            # Explicit, although it is the default: migrations run only in the
+            # PreSync Job.
+            - name: DB_AUTO_MIGRATE
+              value: "false"
+            # PNG optimisation uses oxipng's preset 2 up to this many pixels
+            # and a cheaper preset above it, so that an upload at the pixel
+            # budget finishes inside the 120 s timeout of the /api/admin
+            # Route. 6000000 is backend3's own conservative default, derived
+            # on a desktop for cores assumed to be twice as slow. Replace it
+            # with a value timed on this node: the pixel count at which
+            # preset 2 takes about a quarter of the timeout (30 s) for 16-bit
+            # RGBA, the costliest pixels. backend3 refuses 0 at start.
+            - name: PNG_PRESET_THRESHOLD_PIXELS
+              value: "6000000"
+          # /_ping answers without touching the database; /_readiness checks
+          # the database and the job queue. A database outage therefore takes
+          # the pod out of the Service without restarting it.
+          startupProbe:
+            httpGet:
+              path: /_ping
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 3
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /_readiness
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /_ping
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            # CPU: an image optimisation runs on one thread, one at a time,
+            # and has to finish inside the 120 s timeout of the /api/admin
+            # Route, so the limit leaves it a whole core and a second one for
+            # the requests served meanwhile, password hashing included. Idle
+            # use is close to zero.
+            #
+            # Memory: a low request and a high limit, on purpose.
+            # - The request is the measured baseline, rounded up: 19 MiB
+            #   resident at idle and 29 MiB after a burst of 32,000 API
+            #   requests, in a local run of this image. It covers idle use and
+            #   API traffic only. Every image optimisation runs above it, even
+            #   one of an ordinary 12-megapixel phone photograph (over 100 MiB
+            #   more), and relies on the limit.
+            # - The limit covers the largest optimisation that an allowed
+            #   upload can cause, so that no upload backend3 accepts can get
+            #   the pod OOM-killed. Memory follows the decoded image size. At
+            #   the 50-megapixel budget and the 128 MiB upload limit, the
+            #   measured worst case is a 16-bit animated PNG: 1,536 MiB
+            #   together with the upload (a 16-bit still near the upload
+            #   limit: 1,484 MiB; JPEG: 862 MiB; WebP: about 500 MiB). Plus
+            #   the baseline and 64 MiB for requests served meanwhile, rounded
+            #   up to a multiple of 64 MiB: 1664Mi. This holds while backend3
+            #   keeps only the upload being optimised in memory; uploads
+            #   waiting for their turn stay on disk.
+            # - Uploads that large are rare, so the node does not reserve the
+            #   limit: backend3 uses it only while one of them is optimised.
+            # Check both again after the first production uploads.
+            requests:
+              cpu: 100m
+              memory: 32Mi
+            limits:
+              cpu: "2"
+              memory: 1664Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            # Scratch space, for example `jobs dump --folder /tmp` when an
+            # operator inspects the job queue. Uploads do not stage here: they
+            # go to the uploads volume, which a later change mounts.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

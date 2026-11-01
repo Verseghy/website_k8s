@@ -1,0 +1,110 @@
+# Job queue housekeeping, every night: `jobs tidy` deletes the completed and
+# cancelled jobs from backend3's job queue table. The queue keeps every job
+# row until something deletes it.
+#
+# The image entrypoint is kept and only the arguments are set. The image and
+# the environment are the Deployment's (see the header of deployment.yaml),
+# because the command loads the same configuration. The queue table is
+# created by the first backend3 pod at its start, so a run before that fails.
+#
+# 01:15 Budapest time, outside the hour that a daylight saving change skips or
+# repeats (02:00-03:00).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backend3-jobs-tidy
+spec:
+  schedule: "15 1 * * *"
+  timeZone: Europe/Budapest
+  # One run at a time; a run missed by more than ten minutes is skipped, not
+  # piled up.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # The command is idempotent, so a retry is safe.
+      backoffLimit: 2
+      # A run takes under a second, but the deadline counts from the start of
+      # the Job: it also covers scheduling the pod, pulling the image on the
+      # node and the retries, so twice the run time would stop every run. It
+      # stops a hung run.
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          # Not app: backend3, so the Service never sends traffic to this pod.
+          labels:
+            app: backend3-jobs-tidy
+          annotations:
+            openshift.io/required-scc: restricted-v2
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backend3
+              image: ghcr.io/verseghy/website_backend3
+              imagePullPolicy: IfNotPresent
+              args:
+                - jobs
+                - tidy
+              # The same environment as deployment.yaml (see its header).
+              env:
+                - name: LOCO_ENV
+                  value: production
+                - name: HOST
+                  value: https://backend3.microshift.verseghy-gimnazium.net
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: postgres-website_backend3-password
+                - name: DATABASE_URL
+                  value: postgres://website_backend3:$(DB_PASSWORD)@postgres.verseghy.svc.cluster.local:5432/verseghy
+                - name: JWT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: backend3-jwt-secret
+                - name: TOTP_ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: backend3-totp-key
+                - name: CONTENT_MAC_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: backend3-content-mac-key
+                - name: IMPORT_SOURCE_DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: import-source-database-url
+                - name: PUBLIC_SITE_URL
+                  value: https://verseghy-gimnazium.net
+                - name: MEDIA_PUBLIC_BASE_URL
+                  value: https://backend.microshift.verseghy-gimnazium.net/storage
+                - name: DB_AUTO_MIGRATE
+                  value: "false"
+                - name: PNG_PRESET_THRESHOLD_PIXELS
+                  value: "6000000"
+              # Measured peak: 5 MiB.
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 500m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true

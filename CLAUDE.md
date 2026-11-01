@@ -16,8 +16,9 @@ one says why it holds.
   (`verseghy-website/image-updater/`), Red Hat Developer Hub with its
   PostgreSQL (`verseghy-website/rhdh/`) and `verseghy-website/eso-in-cluster/`.
 - **Edge** (destination `verseghy-microshift`): MicroShift. The sites
-  (`frontend`, `backend`, `backend2`, `backend2-redis`, `mysql`, `postgres`,
-  `static`, `eso` under `verseghy-website/`) and `microshift-infra/`.
+  (`frontend`, `backend`, `backend2`, `backend2-redis`, `backend3`, `mysql`,
+  `postgres`, `static`, `eso` under `verseghy-website/`) and
+  `microshift-infra/`.
 - `verseghy-website/application.yaml` and `microshift-infra/application.yaml`
   are the roots; they sync the Applications in their `applications/`
   directories. Each Application's `spec.destination` names its cluster.

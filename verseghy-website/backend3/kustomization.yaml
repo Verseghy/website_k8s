@@ -1,0 +1,27 @@
+# backend3: the Loco (Rust) application that serves the admin UI at /admin,
+# the admin API at /api/admin and the public read API at /api/v1 on
+# backend3.microshift.verseghy-gimnazium.net. It runs next to backend and
+# backend2 and takes no public traffic from them: the public site keeps
+# calling backend2 until a later change switches it.
+#
+# One images entry serves the Deployment, the migration Job and both
+# CronJobs, so a tag change moves all four together and the migration Job
+# always runs the image that the new pods start. The first tag is set by
+# hand: the full SHA of a website_backend3 master commit whose
+# Pipelines-as-Code build succeeded. Image Updater does not follow this image
+# yet; until it does, the tag is bumped here by hand.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cronjob-jobs-purge.yaml
+  - cronjob-jobs-tidy.yaml
+  - deployment.yaml
+  - job-db-migrate.yaml
+  - route-api-admin.yaml
+  - route-api-v1.yaml
+  - route.yaml
+  - service.yaml
+images:
+  - name: ghcr.io/verseghy/website_backend3
+    newTag: 8f198510c329f9f4acc245a660aa8fdf3afd9b80
+    newName: ghcr.io/verseghy/website_backend3

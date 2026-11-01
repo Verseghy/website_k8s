@@ -16,3 +16,27 @@ spec:
   system: verseghy-website
   definition:
     $text: ./backend2-schema.graphql
+---
+# The definition is the OpenAPI document that the running backend3 serves, so
+# it always matches the deployed API. Developer Hub may read only that URL
+# (backend.reading.allow in verseghy-website/rhdh/app-config.yaml).
+# lifecycle moves to production when the public site switches to this API.
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: backend3-api
+  title: Verseghy Website REST API
+  description: Public read API served by website-backend3 under /api/v1, described by its OpenAPI document
+  tags:
+    - rest
+    - openapi
+  links:
+    - url: https://backend3.microshift.verseghy-gimnazium.net/api/v1/openapi.json
+      title: OpenAPI document
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: group:verseghy
+  system: verseghy-website
+  definition:
+    $text: https://backend3.microshift.verseghy-gimnazium.net/api/v1/openapi.json

@@ -1,0 +1,27 @@
+# backend3's admin JSON API, with its own router limits for sign-in traffic
+# and a 120 s server timeout instead of the router's 30 s default, because an
+# image upload is answered only after its optimisation has finished. See
+# route.yaml for the limits and the forwarded headers.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: backend3-api-admin
+  annotations:
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "40"
+    haproxy.router.openshift.io/rate-limit-connections.rate-tcp: "40"
+    haproxy.router.openshift.io/rate-limit-connections.rate-http: "300"
+    haproxy.router.openshift.io/timeout: 120s
+spec:
+  host: backend3.microshift.verseghy-gimnazium.net
+  path: /api/admin
+  to:
+    kind: Service
+    name: backend3
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
