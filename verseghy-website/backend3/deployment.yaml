@@ -11,7 +11,13 @@
 # job-db-migrate.yaml and both CronJobs. config/production.yaml in the image
 # reads it, and every command, `jobs tidy` and `db migrate` included, refuses
 # to start when a variable without a default (HOST, DATABASE_URL, JWT_SECRET,
-# TOTP_ENCRYPTION_KEY) is missing. Change all four files together.
+# TOTP_ENCRYPTION_KEY) is missing. It also refuses to start when JWT_SECRET
+# or TOTP_ENCRYPTION_KEY is not standard base64 (`=` padding, one line, no
+# trailing newline) of at least 64 bytes, or is one of the throwaway keys
+# that backend3 publishes for local runs. With such a secret the migration
+# Job fails, and with it the sync, before any new pod starts; a pod that
+# restarts outside a sync does not start again. Change all four files
+# together.
 #
 # It runs under restricted-v2 with an arbitrary UID. The pod template requires
 # that SCC, so a higher-priority SCC granted later, such as anyuid, cannot
