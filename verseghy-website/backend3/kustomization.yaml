@@ -27,5 +27,5 @@ resources:
   - service.yaml
 images:
   - name: ghcr.io/verseghy/website_backend3
-    newTag: b3141113d7cf360aadde5d45a77349a472620cd5
+    newTag: 59bf92edba1c9b7d1d04fc29a8b18a8475bcad0e
     newName: ghcr.io/verseghy/website_backend3
