@@ -1,15 +1,26 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
+# Never delete, rename or replace this Application; upgrade ESO by changing
+# targetRevision in place. The ESO CRDs are resources of this chart, so
+# deleting the Application (the finalizer below cascades) deletes them, with
+# them every SecretStore and ExternalSecret on the edge and, through owner
+# references, the Secrets they own: the website's backend-secrets and
+# cert-manager's Cloudflare token.
 metadata:
   name: microshift-infra-eso-operator
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
+  # 2.5.0 is the upstream version that the hub's Red Hat build of ESO (1.2.1)
+  # is based on. From external-secrets v2.1.0 on, the 1Password SDK provider
+  # keeps one client per store instead of creating a new one and listing the
+  # vaults on every store check, which used up the 1Password account's daily
+  # request cap (see verseghy-website/eso/secretstore.yaml).
   source:
     chart: external-secrets
     repoURL: https://charts.external-secrets.io
-    targetRevision: 0.20.4
+    targetRevision: 2.5.0
   destination:
     name: verseghy-microshift
     namespace: external-secrets
