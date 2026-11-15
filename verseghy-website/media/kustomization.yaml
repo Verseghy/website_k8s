@@ -63,7 +63,7 @@ configMapGenerator:
       - nginx.conf
 generatorOptions:
   annotations:
-    verseghy.net/website-backend3-commit: 52c4dce06eac68a9482be573e986d55534e0ff15
+    verseghy.net/website-backend3-commit: eb4f7fb2b33dcb7bcd408fd1e5bdd1d6c4cecfa2
     # The ConfigMap of the previous copy stays in the cluster, because
     # auto-sync does not prune. This keeps it from marking the Application
     # OutOfSync; a human may prune it once the rollout has finished.
