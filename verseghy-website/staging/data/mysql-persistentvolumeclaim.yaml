@@ -1,0 +1,15 @@
+# The throwaway MySQL's data, on the hub's default storage class (ODF
+# ceph-rbd, ReadWriteOnce). It holds one loaded dump; production's whole MySQL
+# claim is 2Gi, binary logs included, and this server writes none. Each
+# rehearsal reloads it from a dump, so it has no Argo CD protection and is not
+# patched to Retain.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

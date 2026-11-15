@@ -71,6 +71,22 @@ spec:
           commonUpdateSettings:
             updateStrategy: semver
             allowTags: 'regexp:^8\.4\.[0-9]+$'
+    # Staging's throwaway MySQL (verseghy-website/staging/data), on the same
+    # 8.4 patch line as production's, bumped in a pull request of its own.
+    # Staging's PostgreSQL and backend3 get no entry: they have no images
+    # entry of their own and use production's (verseghy-website/postgres,
+    # verseghy-website/backend3), so they move with production, and an entry
+    # here would write a tag into staging that stops them following it.
+    - namePattern: verseghy-website-staging-data
+      images:
+        - alias: mysql
+          imageName: mysql
+          manifestTargets:
+            kustomize:
+              name: mysql
+          commonUpdateSettings:
+            updateStrategy: semver
+            allowTags: 'regexp:^8\.4\.[0-9]+$'
     # PostgreSQL 18 minor releases only: a new major needs a dump and
     # restore (or pg_upgrade) of the data directory, so it is a manual change.
     # The exporter in the same Deployment is pinned by digest and not managed.

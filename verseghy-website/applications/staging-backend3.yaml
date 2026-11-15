@@ -1,0 +1,25 @@
+# Staging on the hub: backend3
+# (verseghy-website/staging/backend3/kustomization.yaml), in the namespace
+# that staging-data.yaml describes. A separate Application from staging-data,
+# because its PreSync migration Job runs before anything else in this
+# Application is applied, and needs staging's PostgreSQL to be running
+# already.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: verseghy-website-staging-backend3
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    path: verseghy-website/staging/backend3
+    repoURL: 'https://github.com/Verseghy/website_k8s'
+    targetRevision: HEAD
+  destination:
+    name: in-cluster
+    namespace: verseghy-website-staging
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - ServerSideApply=true

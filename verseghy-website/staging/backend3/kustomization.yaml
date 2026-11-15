@@ -1,0 +1,73 @@
+# backend3 on staging (Application verseghy-website-staging-backend3): the
+# edge's manifests in ../../backend3 with
+#   - the image production runs: the images entry of ../../backend3, with no
+#     tag of its own here, so every change of that entry, by hand or by Image
+#     Updater, moves staging on the same commit as production;
+#   - the same PreSync migration Job, against staging's PostgreSQL (../data);
+#   - staging's keys: backend-secrets in this namespace holds staging-only
+#     values under the edge's key names (../data/externalsecret.yaml);
+#   - staging's URLs (environment.yaml) and the uploads copy at /data
+#     (deployment-uploads.yaml);
+#   - a host on the hub's apps domain that only private addresses can reach.
+#
+# Everything that ../../backend3 gains later lands here as well, whatever its
+# name: Routes get the staging host and the allowlist below, CronJobs are
+# dropped, and a Deployment or Job gets environment.yaml, whose checks fail the
+# build unless its environment has the layout that the patch expects.
+#
+# The migration Job needs PostgreSQL and backend-secrets from ../data. If the
+# first sync of this Application runs before they are ready, the Job fails
+# after its retries and the sync stops; sync this Application by hand once
+# ../data is healthy.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Every object goes to the staging namespace, so none can land in verseghy.
+namespace: verseghy-website-staging
+resources:
+  - ../../backend3
+patches:
+  # No scheduled tasks here: `jobs tidy` and `jobs purge` keep the edge's job
+  # queue table small, and staging's queue holds little and is rebuilt with
+  # its database. This drops every CronJob of ../../backend3, later ones too,
+  # which would otherwise run here with production's URLs; a staging CronJob
+  # therefore lives in another directory.
+  - target:
+      kind: CronJob
+    patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: unused
+  - target:
+      group: (apps|batch)
+      kind: (Deployment|Job)
+    path: environment.yaml
+  - path: deployment-uploads.yaml
+  # Every Route: staging's host, and only private source addresses.
+  #
+  # The host is on the hub's apps domain, under its default wildcard
+  # certificate. It is not private by DNS alone: the hub's router also serves
+  # requests from the internet (Prow's hook Route on this domain receives
+  # GitHub's webhooks), and staging serves production data. The allowlist
+  # makes the router drop every request whose source address is not in a
+  # private range (RFC 1918), which covers the LAN and the cluster's own pod
+  # and node addresses. It relies on the router seeing the client's own
+  # address, which it does on the nodes' host network unless a port forward
+  # in front rewrites source addresses to a LAN address.
+  #
+  # The annotations of ../../backend3 stay: the same rate limits and the 120 s
+  # timeout of /api/admin. The OpenShift Container Platform 5.0 documentation
+  # (Ingress and load balancing, "Route-specific annotations") lists them and
+  # ip_allowlist, a space-separated list; the hub runs 5.0.
+  - target:
+      kind: Route
+    patch: |-
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: unused
+        annotations:
+          haproxy.router.openshift.io/ip_allowlist: 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+      spec:
+        host: backend3-verseghy-website-staging.apps.okd4.home.zoltanszepesi.com

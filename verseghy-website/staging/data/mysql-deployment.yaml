@@ -1,0 +1,148 @@
+# The throwaway MySQL 8.4 of staging: the import's source in rehearsals. A
+# later change adds the nightly rehearsal, which loads the newest production
+# dump into its verseghy database; backend3's import task then reads it as
+# backend3_import (import-source-database-url in externalsecret.yaml). Its
+# data is production's and stays on staging.
+#
+# Accounts, created by the image on the first start only (the variables below
+# are read only when it initialises an empty data directory):
+#   - backend3_import (MYSQL_USER): ALL PRIVILEGES on verseghy.*, enough to
+#     load a dump into verseghy and for the import, which needs SELECT and
+#     LOCK TABLES;
+#   - root, only as root@localhost (MYSQL_ROOT_HOST), so it is reachable only
+#     inside this pod (mysql-root.yaml).
+#
+# It runs under restricted-v2 with the namespace's arbitrary UID and a
+# read-only root filesystem. Checked locally with this image, an arbitrary UID,
+# a read-only root and emptyDirs at /var/run/mysqld and /tmp: the image
+# initialises and restarts, also with a root-owned lost+found in the data
+# volume (ext4 on ceph-rbd has one); only root@localhost and
+# backend3_import@% exist; backend3_import connects over TLS 1.3 (the server
+# generates its certificate in the data directory), which the import's MySQL
+# driver needs for this server's default authentication. The pod template
+# requires restricted-v2, so a higher-priority SCC granted later, such as
+# anyuid, cannot take over.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  # One ReadWriteOnce volume: the old pod releases it before the new one
+  # starts.
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+      annotations:
+        openshift.io/required-scc: restricted-v2
+    spec:
+      automountServiceAccountToken: false
+      # Service links would put MYSQL_* variables of the mysql Service into the
+      # environment, next to the image's own MYSQL_* settings.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        # The ceph-rbd driver lets kubelet apply the pod's fsGroup to the
+        # volume; with the default policy it walks every file at each start.
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: mysql
+          # The tag comes from the images entry in kustomization.yaml.
+          image: mysql
+          args:
+            # No binary log: nothing replicates from this server, and every
+            # dump load would add its full size to the log, which MySQL keeps
+            # for 30 days by default, on a 2Gi volume.
+            - --skip-log-bin
+            # Nothing reads its statistics, and it more than doubles the
+            # memory at idle (measured locally: 454 MB with it, 208 MB
+            # without).
+            - --performance-schema=OFF
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-root
+                  key: password
+            - name: MYSQL_ROOT_HOST
+              value: localhost
+            - name: MYSQL_DATABASE
+              value: verseghy
+            - name: MYSQL_USER
+              value: backend3_import
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: mysql-import-password
+          ports:
+            - name: mysql
+              containerPort: 3306
+          # Over TCP, because while the image initialises, a temporary server
+          # listens on the socket only. `mysqladmin ping` exits 0 as soon as
+          # the server answers, also when it refuses the client, which has no
+          # password here; the refusals are not logged (checked locally).
+          startupProbe:
+            exec:
+              command: [mysqladmin, ping, -h, 127.0.0.1, --protocol=TCP, --connect-timeout=3]
+            periodSeconds: 5
+            timeoutSeconds: 5
+            # Up to five minutes for the first initialisation or for crash
+            # recovery.
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: [mysqladmin, ping, -h, 127.0.0.1, --protocol=TCP, --connect-timeout=3]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: [mysqladmin, ping, -h, 127.0.0.1, --protocol=TCP, --connect-timeout=3]
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          # The request is the measured idle use; the limit leaves room for a
+          # dump load and the import's reads above the 128 MiB InnoDB buffer
+          # pool.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            # The socket, the PID file and the lock files.
+            - name: run
+              mountPath: /var/run/mysqld
+            # MySQL's tmpdir: sort files while a dump load builds indexes,
+            # and on-disk temporary tables.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
+        - name: run
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi

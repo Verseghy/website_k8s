@@ -14,7 +14,10 @@ one says why it holds.
   Argo CD, Prow (`verseghy-website/prow/`), the PAC and Shipwright builds
   (`verseghy-website/builds/`), Argo CD Image Updater
   (`verseghy-website/image-updater/`), Red Hat Developer Hub with its
-  PostgreSQL (`verseghy-website/rhdh/`) and `verseghy-website/eso-in-cluster/`.
+  PostgreSQL (`verseghy-website/rhdh/`), `verseghy-website/eso-in-cluster/`,
+  and the LAN-only staging namespace `verseghy-website-staging`
+  (`verseghy-website/staging/`), which reuses the edge's manifests through
+  kustomize.
 - **Edge** (destination `verseghy-microshift`): MicroShift. The sites
   (`frontend`, `backend`, `backend2`, `backend2-redis`, `backend3`, `mysql`,
   `postgres`, `static`, `eso` under `verseghy-website/`) and
@@ -55,8 +58,9 @@ one says why it holds.
   human prunes it.
 - **Never run a command that reads or writes the databases this repository
   deploys** (MySQL on the edge, which `backend` and `backend2` use,
-  backend3's PostgreSQL on the edge, and Developer Hub's PostgreSQL on the
-  hub): no database client, and no
+  backend3's PostgreSQL on the edge, Developer Hub's PostgreSQL on the hub,
+  and staging's PostgreSQL and throwaway MySQL on the hub, which hold copies
+  of production data): no database client, and no
   application command such as `php artisan migrate`, `db:seed` or `db:wipe` in
   the Laravel `backend` pod, neither through `oc exec`, `oc rsh` or `oc debug`
   nor through a remote host. They hold live data, and a human operates them.

@@ -1,0 +1,45 @@
+# Staging's URLs in the backend3 container of the Deployment and of the
+# migration Job, which share one environment (see the header of
+# ../../backend3/deployment.yaml). Everything else stays as on the edge: the
+# keys come from staging's backend-secrets under the same key names, and
+# LOCO_ENV stays production, so staging runs production's configuration and
+# its refusals.
+#
+# A JSON patch, not a strategic merge: a merge moves the entries it replaces
+# to the top of the list, above DB_PASSWORD, and Kubernetes expands
+# $(DB_PASSWORD) in DATABASE_URL only from entries above it. Each `test` stops
+# the build when ../../backend3 moves an entry, instead of replacing another
+# one.
+- op: test
+  path: /spec/template/spec/containers/0/name
+  value: backend3
+- op: test
+  path: /spec/template/spec/containers/0/env/1/name
+  value: HOST
+# backend3's own URL: the host of the staging Routes (kustomization.yaml).
+- op: replace
+  path: /spec/template/spec/containers/0/env/1/value
+  value: https://backend3-verseghy-website-staging.apps.okd4.home.zoltanszepesi.com
+- op: test
+  path: /spec/template/spec/containers/0/env/3/name
+  value: DATABASE_URL
+# Staging's PostgreSQL (../data).
+- op: replace
+  path: /spec/template/spec/containers/0/env/3/value
+  value: postgres://website_backend3:$(DB_PASSWORD)@postgres.verseghy-website-staging.svc.cluster.local:5432/verseghy
+- op: test
+  path: /spec/template/spec/containers/0/env/8/name
+  value: PUBLIC_SITE_URL
+# Staging's public site: the Angular build that a later change deploys here,
+# on this host. The admin's preview and "open on the site" links point there.
+- op: replace
+  path: /spec/template/spec/containers/0/env/8/value
+  value: https://frontend-verseghy-website-staging.apps.okd4.home.zoltanszepesi.com
+- op: test
+  path: /spec/template/spec/containers/0/env/9/name
+  value: MEDIA_PUBLIC_BASE_URL
+# /storage on backend3's staging host, where the media server that a later
+# change adds serves the uploads copy.
+- op: replace
+  path: /spec/template/spec/containers/0/env/9/value
+  value: https://backend3-verseghy-website-staging.apps.okd4.home.zoltanszepesi.com/storage
