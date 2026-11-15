@@ -1,0 +1,27 @@
+# Staging on the hub: keys, databases and uploads copy
+# (verseghy-website/staging/data/kustomization.yaml).
+#
+# Before the first sync, by hand: create the namespace verseghy-website-staging
+# with the label argocd.argoproj.io/managed-by=verseghy. This Argo CD instance
+# is namespace-scoped, so it cannot create a namespace (no CreateNamespace
+# here); the label makes the GitOps Operator give it admin rights in that
+# namespace and add the namespace to its in-cluster destination.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: verseghy-website-staging-data
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    path: verseghy-website/staging/data
+    repoURL: 'https://github.com/Verseghy/website_k8s'
+    targetRevision: HEAD
+  destination:
+    name: in-cluster
+    namespace: verseghy-website-staging
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - ServerSideApply=true

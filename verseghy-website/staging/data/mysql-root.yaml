@@ -1,0 +1,40 @@
+# The throwaway MySQL's root password: 40 random letters and digits, generated
+# in the cluster once and stored nowhere else. root exists only as
+# root@localhost (mysql-deployment.yaml), so it is used only by hand inside
+# the MySQL pod, for example to make the server read-only in a dress
+# rehearsal; the import and the dump loads use backend3_import. Read it from
+# the Secret mysql-root, key password.
+#
+# CreatedOnce: ESO writes the Secret once and never replaces it. MySQL reads
+# the value only when it initialises an empty data directory, so a later value
+# would no longer match the server's. If the Secret is lost, ESO generates a
+# new one that does not match either; the server then needs its root password
+# set again, or a fresh data directory.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: mysql-root
+spec:
+  length: 40
+  digits: 10
+  symbols: 0
+  noUpper: false
+  allowRepeat: true
+  encoding: raw
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: mysql-root
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: mysql-root
+    creationPolicy: Owner
+    deletionPolicy: Retain
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: mysql-root

@@ -11,6 +11,7 @@ Auto-promotes container images into this repo via pull requests, run by the
 | mysql | `mysql` | semver, 8.4 patch line |
 | postgres | `postgres` | semver, 18 minor releases |
 | backend2-redis | `redis` | semver, 6.2-alpine patch line |
+| staging-data (staging's throwaway MySQL) | `mysql` | semver, 8.4 patch line |
 
 Each managed app has a `kustomization.yaml` holding the `images:` entry that
 Image Updater rewrites.

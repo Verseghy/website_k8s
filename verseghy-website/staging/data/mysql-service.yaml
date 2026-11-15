@@ -1,0 +1,15 @@
+# mysql.verseghy-website-staging.svc.cluster.local:3306, the import's source
+# (externalsecret.yaml). No Route targets it, and only the MySQL protocol
+# port is exposed.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - name: mysql
+      protocol: TCP
+      port: 3306
+      targetPort: mysql

@@ -1,0 +1,35 @@
+# Staging's copy of the uploads volume. It has the name of production's
+# (backend-pv-claim on the edge), so manifests that mount the uploads volume
+# by name mount the copy here. backend3 mounts it now (../backend3); the
+# nightly rehearsal and the media server, which later changes add, mount it
+# too. The copy is pushed by hand from the workstation after each backup; Git
+# holds no data.
+#
+# ReadWriteMany, on the hub's CephFS class (ODF ocs-storagecluster-cephfs):
+# the hub has three schedulable nodes, so the pods that share this volume can
+# run on different nodes, which a ReadWriteOnce volume does not allow. Pinning
+# all of them to one node with pod affinity would also work, but would tie
+# every one of them to wherever the first runs, and stop them all while that
+# node drains; with CephFS each pod mounts the volume on any node. (On the
+# edge, pods share one ReadWriteOnce volume only because it has one node.)
+#
+# Size: production's claim, so a full copy always fits; the volume holds
+# about 3 GB today. CephFS enforces the size as a quota and stores only what
+# is written.
+#
+# Argo CD keeps this claim when the Application is deleted and never prunes
+# it, because restoring the copy takes a long push. Its PV has reclaim policy
+# Delete.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-pv-claim
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ocs-storagecluster-cephfs
+  resources:
+    requests:
+      storage: 30Gi

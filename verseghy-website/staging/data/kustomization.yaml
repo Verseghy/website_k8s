@@ -1,0 +1,44 @@
+# Staging's keys, databases and uploads copy, on the hub in the namespace
+# verseghy-website-staging (Application verseghy-website-staging-data).
+# Staging is for developers and rehearsals of the cut-over, reached only from
+# the LAN. backend3 itself is in ../backend3, a separate Application: its
+# migration Job is a PreSync hook, which runs before anything else in its own
+# Application is applied, so PostgreSQL has to come from another one, as on the
+# edge.
+#
+# Production data lives here: the throwaway MySQL is loaded from production
+# dumps, and the uploads volume is a copy of production's. It stays on
+# staging. No Route targets the databases or the copy.
+#
+# Before the first sync, by hand: the namespace with its Argo CD label
+# (../../applications/staging-data.yaml) and the 1Password token
+# (secretstore.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Every object goes to the staging namespace, whatever the reused production
+# manifests say, so none of them can land in verseghy.
+namespace: verseghy-website-staging
+resources:
+  # PostgreSQL as on the edge, image tag included, so Image Updater's bumps of
+  # ../../postgres/kustomization.yaml move staging too. Its comments describe
+  # the edge: here its claim is on the hub's default storage class (ODF
+  # ceph-rbd, ReadWriteOnce, reclaim policy Delete; staging's database is
+  # rebuilt from dumps, so it is not patched to Retain), and its passwords are
+  # the staging items in externalsecret.yaml.
+  - ../../postgres
+  - externalsecret.yaml
+  - mysql-deployment.yaml
+  - mysql-persistentvolumeclaim.yaml
+  - mysql-root.yaml
+  - mysql-service.yaml
+  - secretstore.yaml
+  - uploads-persistentvolumeclaim.yaml
+# The throwaway MySQL stays on the 8.4 patch line that production runs
+# (../../mysql); a dump loads into any 8.4 patch release. Image Updater bumps
+# this entry itself (the verseghy-website-staging-data entry in
+# ../../image-updater/imageupdater.yaml), in a pull request of its own,
+# separate from production's.
+images:
+  - name: mysql
+    newTag: 8.4.13
+    newName: mysql
