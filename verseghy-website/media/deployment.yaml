@@ -1,0 +1,158 @@
+# The media server: nginx from the pinned UBI 9 nginx 1.26 image, run with
+# website_backend3's nginx.conf without its comment lines (see
+# kustomization.yaml), plus an exporter for /metrics.
+#
+# The uploads volume (backend-pv-claim) is mounted read-only, subPath
+# app/public, at /srv/media/storage, so /storage/<path> maps to
+# app/public/<path> and nothing else on the volume (app/backups, framework,
+# logs) is visible here. Three things about this mount were tested on a
+# throwaway volume on MicroShift 4.20.41, the edge's build:
+#
+# - readOnly is on the volumeMount, never on the claim. TopoLVM mounts the
+#   logical volume once per pod and refuses a read-only mount of a volume that
+#   another pod (backend, backend3) holds read-write: a pod with a read-only
+#   claim stays in ContainerCreating with FailedMount "already mounted".
+# - The pod gets the namespace's fsGroup from restricted-v2, and kubelet
+#   applies it to this volume (the CSIDriver's fsGroupPolicy is
+#   ReadWriteOnceWithFSType). At the first mount by any restricted-v2 pod,
+#   this one or backend3, kubelet moves every file and directory into that
+#   group, adds group read and write, and sets setgid on directories; owners
+#   do not change. OnRootMismatch skips that walk once the volume's root
+#   already has the group, so it runs once, not at every start of either pod.
+# - RollingUpdate with a 5 s preStop sleep: the new pod is Ready before the old
+#   one stops, and the old one keeps serving until the Service has dropped it.
+#   Two media pods on the volume at once worked, with no failed request.
+#
+# Runs under restricted-v2 with an arbitrary UID; the pod template requires
+# that SCC, so a higher-priority SCC granted later cannot take over.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: media
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: media
+      annotations:
+        openshift.io/required-scc: restricted-v2
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # The 120 s server timeout of the Route, so that a download that has
+      # started when a rollout stops this pod can finish: nginx stops on the
+      # image's stop signal, SIGQUIT, after its requests in flight.
+      terminationGracePeriodSeconds: 130
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: media
+          # deploy/media/image.txt of website_backend3 at the commit named in
+          # kustomization.yaml, by digest.
+          image: registry.access.redhat.com/ubi9/nginx-126:1-1792771263@sha256:c49b0d5562bbefd9dddda53e332c8eb74e82c43b8ef76901147e020296701a4e
+          imagePullPolicy: IfNotPresent
+          # nginx itself, not the image's s2i run script, which writes to the
+          # root filesystem. -e sends the error log that nginx opens before it
+          # reads its configuration to stdout, where nginx.conf sends both logs.
+          command: ["/usr/sbin/nginx", "-e", "/dev/stdout"]
+          ports:
+            - name: http
+              containerPort: 8080
+          # /healthz is answered by nginx itself; no Route sends it here.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/usr/bin/sleep", "5"]
+          # One nginx worker (nginx.conf) sending static files with sendfile.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 500m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: media
+              mountPath: /srv/media/storage
+              subPath: app/public
+              readOnly: true
+            # The pid file and nginx's temp directories (nginx.conf).
+            - name: tmp
+              mountPath: /tmp
+        # Prometheus metrics for the media server on :9113/metrics, for the
+        # hub's monitoring to scrape; nothing on the edge scrapes it. It reads
+        # nginx's stub_status page, which nginx.conf serves on the pod's
+        # loopback address only (127.0.0.1:8081), so no Service or Route
+        # reaches that page. When the page does not answer, the exporter keeps
+        # running and reports nginx_up 0. It has no probes: a failing
+        # readiness check would take /storage out of its Service. A
+        # crash-looping exporter would do that too, so its image is pinned by
+        # digest and bumped by hand.
+        - name: exporter
+          image: quay.io/nginx/nginx-prometheus-exporter:1.5.3@sha256:85666e7fde7e253f1c6d978f9a961245df4c9cdb7677e1866d9bb28e8f9ee41d
+          args:
+            - --nginx.scrape-uri=http://127.0.0.1:8081/stub_status
+            - --web.listen-address=:9113
+          ports:
+            - name: metrics
+              containerPort: 9113
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      volumes:
+        # Read-write here on purpose; read-only is on the volumeMount above.
+        - name: media
+          persistentVolumeClaim:
+            claimName: backend-pv-claim
+        - name: config
+          configMap:
+            name: media-nginx
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi

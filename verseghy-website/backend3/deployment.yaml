@@ -32,7 +32,11 @@ spec:
     matchLabels:
       app: backend3
   # The new pod must be ready before the old one stops, so a deployment does
-  # not take backend3 offline. The pod holds no ReadWriteOnce volume yet.
+  # not take backend3 offline. The uploads volume is ReadWriteOnce, which
+  # binds it to the edge's one node, not to one pod: in the co-mount test on
+  # the edge's MicroShift build, two pods with this pod's security settings
+  # held it read-write at once during a rolling update, next to a pod with
+  # backend's settings and the media server.
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -57,6 +61,13 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+        # kubelet applies the pod's fsGroup to the uploads volume. With the
+        # default policy, Always, it walks every file of the volume at each
+        # start of this pod and regroups even the files that backend creates
+        # meanwhile. OnRootMismatch, as on the media server, walks only while
+        # the volume's root does not have the group yet: once, at the first
+        # mount by either pod (see verseghy-website/media/deployment.yaml).
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: backend3
           # The tag comes from the images entry in kustomization.yaml.
@@ -200,10 +211,32 @@ spec:
           volumeMounts:
             # Scratch space, for example `jobs dump --folder /tmp` when an
             # operator inspects the job queue. Uploads do not stage here: they
-            # go to the uploads volume, which a later change mounts.
+            # stage on the uploads volume.
             - name: tmp
               mountPath: /tmp
+            # The whole uploads volume, read-write. backend3's production
+            # configuration has its media settings here: root
+            # /data/app/public (the tree the media server serves as
+            # /storage), tmp_dir /data/backend3/tmp and trash_dir
+            # /data/backend3/trash, on the same file system, so a finished
+            # upload is renamed into place atomically. MEDIA_SERVE_STORAGE
+            # stays unset (false): the media server serves /storage, not
+            # backend3.
+            #
+            # Until backend (backend1) is frozen at the cut-over, with its own
+            # mount read-only, nothing may write into app/public through
+            # backend3 on production: no admin upload, and no other backend3
+            # command that stores files there. A folder that backend3 creates
+            # there belongs to its UID, and backend3 sets it to 0755 and its
+            # files to 0644. backend runs as uid 1000 with groups 0 and 33, so
+            # it could not upload into such a folder or delete anything from
+            # it, and could not rewrite those files in place.
+            - name: uploads
+              mountPath: /data
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: backend-pv-claim

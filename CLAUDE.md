@@ -19,8 +19,8 @@ one says why it holds.
   (`verseghy-website/staging/`), which reuses the edge's manifests through
   kustomize.
 - **Edge** (destination `verseghy-microshift`): MicroShift. The sites
-  (`frontend`, `backend`, `backend2`, `backend2-redis`, `backend3`, `mysql`,
-  `postgres`, `static`, `eso` under `verseghy-website/`) and
+  (`frontend`, `backend`, `backend2`, `backend2-redis`, `backend3`, `media`,
+  `mysql`, `postgres`, `static`, `eso` under `verseghy-website/`) and
   `microshift-infra/`.
 - `verseghy-website/application.yaml` and `microshift-infra/application.yaml`
   are the roots; they sync the Applications in their `applications/`
@@ -90,6 +90,14 @@ one says why it holds.
   Updater only updates an image that the Application already runs
   (`forceUpdate` is not set and keeps its default, `false`), so it never makes
   the first deployment; afterwards it opens the bump PRs here.
+- **`verseghy-website/media/nginx.conf` and the media container's image are
+  copied from website_backend3's `deploy/media/` at the commit that
+  `verseghy-website/media/kustomization.yaml` names; never edit them here.**
+  nginx.conf is that commit's file with its comment lines removed, which nginx
+  skips, so it configures the server that website_backend3's media contract
+  suite tests in that image. A change starts there and arrives here as a new
+  copy, checked with the drift check in that file's header. The media image
+  therefore has no entry in `imageupdater.yaml`.
 - **`verseghy-website/builds/buildstrategy-buildah-ubi9.yaml` lists its
   differences from the Builds operator's `buildah` ClusterBuildStrategy in its
   header and is diffed against it after every operator upgrade** (the header

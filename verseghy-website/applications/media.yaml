@@ -1,0 +1,25 @@
+# The media server (verseghy-website/media). It mounts the uploads claim
+# backend-pv-claim, which the backend Application owns, so deleting this
+# Application never touches the volume.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: verseghy-website-media
+  labels:
+    verseghy.net/component: media
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    path: verseghy-website/media
+    repoURL: 'https://github.com/Verseghy/website_k8s'
+    targetRevision: HEAD
+  destination:
+    name: verseghy-microshift
+    namespace: verseghy
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
