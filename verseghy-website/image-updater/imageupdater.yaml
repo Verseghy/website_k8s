@@ -45,6 +45,22 @@ spec:
             updateStrategy: newest-build
             allowTags: 'regexp:^[0-9a-f]{40}$'
             pullSecret: "pullsecret:verseghy/ghcr-pull-secret"
+    # One images entry in verseghy-website/backend3/kustomization.yaml serves
+    # the Deployment, the migration Job and both CronJobs, so a bump PR moves
+    # all four, and the sync after its merge runs the new image's migrations
+    # before any new pod starts. verseghy-website/backend3/job-db-migrate.yaml
+    # says when such a PR has to wait.
+    - namePattern: verseghy-website-backend3
+      images:
+        - alias: backend3
+          imageName: ghcr.io/verseghy/website_backend3
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/verseghy/website_backend3
+          commonUpdateSettings:
+            updateStrategy: newest-build
+            allowTags: 'regexp:^[0-9a-f]{40}$'
+            pullSecret: "pullsecret:verseghy/ghcr-pull-secret"
     - namePattern: verseghy-website-mysql
       images:
         - alias: mysql

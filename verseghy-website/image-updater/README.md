@@ -7,7 +7,7 @@ Auto-promotes container images into this repo via pull requests, run by the
 
 | App | Image | Strategy |
 |-----|-------|----------|
-| frontend, backend, backend2 | `ghcr.io/verseghy/website_*` | newest-build (commit-SHA tags) |
+| frontend, backend, backend2, backend3 | `ghcr.io/verseghy/website_*` | newest-build (commit-SHA tags) |
 | mysql | `mysql` | semver, 8.4 patch line |
 | postgres | `postgres` | semver, 18 minor releases |
 | backend2-redis | `redis` | semver, 6.2-alpine patch line |
