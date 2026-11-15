@@ -1,0 +1,42 @@
+# /storage on backend's host, backend.microshift.verseghy-gimnazium.net,
+# served by the media server. Media URLs on this host are absolute. backend2
+# and backend3 build them from STORAGE_BASE_URL and MEDIA_PUBLIC_BASE_URL,
+# which their manifests here set to this host. Other such URLs cannot be
+# changed from this repository: the frontend, built from its own repository,
+# rewrites the image URLs in post content to this host and links the Diáktoll
+# PDF here, and other sites keep og:image URLs that point here. So this host
+# serves the same paths as verseghy-gimnazium.net/storage
+# (route-storage-public.yaml).
+#
+# backend's whole-host Route (verseghy-website/backend/route.yaml) keeps
+# everything else on this host. This Route's path is longer, so it wins for
+# /storage and every path below /storage/; other names that only start with
+# /storage stay on backend.
+#
+# - TLS: edge termination with no certificate of its own, as on every Route
+#   here, so the router serves its default certificate, whose
+#   *.microshift.verseghy-gimnazium.net name covers this host
+#   (microshift-infra/router-certs/certificate.yaml). HTTP is redirected to
+#   HTTPS.
+# - Timeout, rate limits and session cookie: as on route-storage-public.yaml,
+#   for the same reasons.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: media-storage-legacyhost
+  annotations:
+    haproxy.router.openshift.io/disable_cookies: "true"
+    haproxy.router.openshift.io/timeout: 120s
+spec:
+  host: backend.microshift.verseghy-gimnazium.net
+  path: /storage
+  to:
+    kind: Service
+    name: media
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

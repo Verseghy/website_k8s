@@ -1,3 +1,7 @@
+# backend's host. /storage on this host goes to the media server
+# (verseghy-website/media/route-storage-legacyhost.yaml): its path is longer
+# than this whole-host Route, so it wins for /storage. backend has no
+# /storage Route of its own, on this host or on verseghy-gimnazium.net.
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:

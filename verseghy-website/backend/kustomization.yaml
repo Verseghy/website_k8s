@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - persistentvolumeclaim.yaml
-  - route-storage.yaml
   - route.yaml
   - serviceaccount.yaml
   - service.yaml

@@ -48,7 +48,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
-      # The 120 s server timeout of the Route, so that a download that has
+      # The 120 s server timeout of its Routes, so that a download that has
       # started when a rollout stops this pod can finish: nginx stops on the
       # image's stop signal, SIGQUIT, after its requests in flight.
       terminationGracePeriodSeconds: 130

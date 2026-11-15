@@ -1,0 +1,59 @@
+# /storage on the public site's host, served by the media server. Post pages,
+# galleries and links in the content load uploads, post images and staff
+# photos from https://verseghy-gimnazium.net/storage/..., and the same paths
+# must also work on backend's host (route-storage-legacyhost.yaml). The other
+# Routes on this host are frontend's whole-host Route
+# (verseghy-website/frontend/route.yaml) and static's /images and /docs. The
+# longest matching path wins, so /storage and every path below /storage/ come
+# here; other names that only start with /storage do not.
+#
+# This must stay the only Route for /storage on this host. The router admits
+# one Route per host and path: when two Routes claim the same host and path,
+# it keeps the older one and marks the newer one HostAlreadyClaimed in its
+# status, so an older second /storage Route here, such as backend's former
+# backend-storage, hides this one for as long as it exists.
+#
+# - TLS: edge termination with no certificate of its own, as on every Route
+#   here, so the router serves its default certificate, which covers
+#   verseghy-gimnazium.net (microshift-infra/router-certs/certificate.yaml).
+#   HTTP is redirected to HTTPS.
+# - Timeout: 120 s instead of the router's 30 s default, for slow clients on
+#   the largest files, as on route-storage-admin.yaml.
+# - No router rate limits: the router counts connections per client address,
+#   and a class behind one school address that opens a gallery of over 100
+#   images opens many connections at once. If limits are added later, size
+#   them from the production access log.
+# - No session cookie (disable_cookies). Otherwise the router sets a cookie
+#   that ties a client to one pod on every response to a client that does
+#   not send it back, and its configuration template sets that cookie with
+#   HAProxy's nocache option, which then adds a second Cache-Control header,
+#   "private", to every response the media server marks public. The client
+#   would get two Cache-Control headers where the media server sends one,
+#   and shared caches would not store the files. The media pods all serve
+#   the same read-only files, so no client needs to stay on one of them;
+#   without the cookie the router picks a pod with its balance algorithm,
+#   random by default.
+#
+# The annotations follow the OpenShift Container Platform 4.20 documentation,
+# as on backend3's Routes (see the header of verseghy-website/backend3/
+# route.yaml).
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: media-storage-public
+  annotations:
+    haproxy.router.openshift.io/disable_cookies: "true"
+    haproxy.router.openshift.io/timeout: 120s
+spec:
+  host: verseghy-gimnazium.net
+  path: /storage
+  to:
+    kind: Service
+    name: media
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
