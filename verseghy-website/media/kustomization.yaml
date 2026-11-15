@@ -3,11 +3,13 @@
 # claim backend-pv-claim with backend (backend1) and backend3 and only reads
 # it. This directory provisions no volume of its own.
 #
-# For now only the admin's Route on backend3's host sends traffic here
-# (route-storage-admin.yaml). The public /storage stays on backend until a
-# later change moves it: on verseghy-gimnazium.net through its backend-storage
-# Route, and on backend.microshift.verseghy-gimnazium.net through its backend
-# Route, which takes that whole host.
+# Three Routes send /storage here, one for each host that serves it, and no
+# other Route may claim /storage on these hosts:
+# route-storage-public.yaml (verseghy-gimnazium.net),
+# route-storage-legacyhost.yaml (backend.microshift.verseghy-gimnazium.net)
+# and route-storage-admin.yaml (backend3.microshift.verseghy-gimnazium.net).
+# Each one's path is longer than its host's whole-host Route, so it wins for
+# /storage.
 #
 # nginx.conf is deploy/media/nginx.conf of website_backend3, at the commit in
 # the annotation below, with every comment line (first non-blank character #)
@@ -49,6 +51,8 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - route-storage-admin.yaml
+  - route-storage-legacyhost.yaml
+  - route-storage-public.yaml
   - service.yaml
 configMapGenerator:
   # The generated name carries a hash of the data, so a new copy changes the

@@ -11,8 +11,9 @@
 #   and a class behind one school address that opens a gallery of over 100
 #   images opens far more connections at once than backend3's limits allow.
 #   If limits are added later, size them from the production access log.
+# - No session cookie: as on route-storage-public.yaml, for the same reasons.
 #
-# The annotation follows the OpenShift Container Platform 4.20 documentation,
+# The annotations follow the OpenShift Container Platform 4.20 documentation,
 # as on backend3's Routes (see the header of verseghy-website/backend3/
 # route.yaml).
 apiVersion: route.openshift.io/v1
@@ -20,6 +21,7 @@ kind: Route
 metadata:
   name: media-storage-admin
   annotations:
+    haproxy.router.openshift.io/disable_cookies: "true"
     haproxy.router.openshift.io/timeout: 120s
 spec:
   host: backend3.microshift.verseghy-gimnazium.net
