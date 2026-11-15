@@ -1,0 +1,36 @@
+# /storage on backend3's host, served by the media server. backend3's admin
+# loads every image and file through root-relative /storage/... URLs on its
+# own host, which keeps its Content-Security-Policy at img-src 'self'. The
+# path is longer than backend3's whole-host Route (verseghy-website/backend3/
+# route.yaml), so it wins for /storage.
+#
+# - Timeout: a 120 s server timeout instead of the router's 30 s default, as
+#   on /api/admin, for slow clients on the largest files (PDFs of about
+#   86 MB).
+# - No router rate limits: the router counts connections per client address,
+#   and a class behind one school address that opens a gallery of over 100
+#   images opens far more connections at once than backend3's limits allow.
+#   If limits are added later, size them from the production access log.
+#
+# The annotation follows the OpenShift Container Platform 4.20 documentation,
+# as on backend3's Routes (see the header of verseghy-website/backend3/
+# route.yaml).
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: media-storage-admin
+  annotations:
+    haproxy.router.openshift.io/timeout: 120s
+spec:
+  host: backend3.microshift.verseghy-gimnazium.net
+  path: /storage
+  to:
+    kind: Service
+    name: media
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

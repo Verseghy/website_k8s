@@ -6,8 +6,11 @@
 #   - the same PreSync migration Job, against staging's PostgreSQL (../data);
 #   - staging's keys: backend-secrets in this namespace holds staging-only
 #     values under the edge's key names (../data/externalsecret.yaml);
-#   - staging's URLs (environment.yaml) and the uploads copy at /data
-#     (deployment-uploads.yaml);
+#   - staging's URLs (environment.yaml);
+#   - the uploads mount of ../../backend3 at /data, which here mounts
+#     staging's copy of the uploads volume: a ReadWriteMany claim of the same
+#     name (../data/uploads-persistentvolumeclaim.yaml), so the rolling
+#     update's second pod can mount it on any node;
 #   - a host on the hub's apps domain that only private addresses can reach.
 #
 # Everything that ../../backend3 gains later lands here as well, whatever its
@@ -43,7 +46,6 @@ patches:
       group: (apps|batch)
       kind: (Deployment|Job)
     path: environment.yaml
-  - path: deployment-uploads.yaml
   # Every Route: staging's host, and only private source addresses.
   #
   # The host is on the hub's apps domain, under its default wildcard

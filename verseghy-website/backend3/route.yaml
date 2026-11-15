@@ -1,7 +1,9 @@
 # backend3's host: the admin UI (/admin), the health routes, the redirect
 # from / and robots.txt. /api/admin and /api/v1 have Routes of their own on
 # the same host (route-api-admin.yaml, route-api-v1.yaml), because the router
-# keeps its limits per Route; the longest matching path wins. The wildcard
+# keeps its limits per Route; the longest matching path wins. /storage on this
+# host goes to the media server (verseghy-website/media/
+# route-storage-admin.yaml). The wildcard
 # certificate that the router serves by default covers the host.
 #
 # Router limits, per client address and per Route, cap floods from one

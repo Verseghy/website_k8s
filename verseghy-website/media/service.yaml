@@ -1,0 +1,20 @@
+# The Routes target the http port only. The metrics port serves the exporter's
+# /metrics inside the cluster, for the hub's monitoring to scrape later; no
+# Route targets it. nginx's stub_status listener (127.0.0.1:8081) is no port
+# of this Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: media
+spec:
+  selector:
+    app: media
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: http
+    - name: metrics
+      protocol: TCP
+      port: 9113
+      targetPort: metrics

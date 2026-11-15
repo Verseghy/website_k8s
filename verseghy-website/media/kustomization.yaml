@@ -1,0 +1,66 @@
+# media: the nginx server that serves the uploads volume's app/public tree as
+# /storage/** (Application verseghy-website-media). It shares the uploads
+# claim backend-pv-claim with backend (backend1) and backend3 and only reads
+# it. This directory provisions no volume of its own.
+#
+# For now only the admin's Route on backend3's host sends traffic here
+# (route-storage-admin.yaml). The public /storage stays on backend until a
+# later change moves it: on verseghy-gimnazium.net through its backend-storage
+# Route, and on backend.microshift.verseghy-gimnazium.net through its backend
+# Route, which takes that whole host.
+#
+# nginx.conf is deploy/media/nginx.conf of website_backend3, at the commit in
+# the annotation below, with every comment line (first non-blank character #)
+# removed and runs of blank lines squeezed to one, under a first comment line
+# that names the commit. The comments stay in website_backend3, next to the
+# configuration they explain. The media container runs the image that
+# deploy/media/image.txt names at that commit. website_backend3 is the source
+# of both: its Test job runs the media contract suite against its nginx.conf
+# in that image, and it passed at that commit. nginx skips comment and blank
+# lines, so the copy configures the same server. Never edit nginx.conf or the
+# image here. To move to a newer commit, with it in $c and a fetched clone of
+# website_backend3 in $b3, write the copy in the repository root with
+#
+#   { echo "# Copy of website_backend3 deploy/media/nginx.conf at $c with its comment lines removed; never edit it here, see kustomization.yaml."; git -C "$b3" show "$c:deploy/media/nginx.conf" | grep -v '^[[:space:]]*#' | cat -s; } > verseghy-website/media/nginx.conf
+#
+# then set the image from that commit's image.txt in deployment.yaml, change
+# the annotation, and run the drift check.
+#
+# Drift check. Run it in the repository root with a fetched clone of
+# website_backend3 in $b3, on every change here and whenever website_backend3
+# changes deploy/media/. The first two commands must print nothing and exit 0.
+# The first builds the copy of that commit's file as the command above writes
+# it and compares it with the rendered ConfigMap's nginx.conf, so any
+# difference fails: a changed directive, an added comment or blank line, or a
+# first line that names another commit. The second compares the media image
+# with that commit's image.txt. The third lists what website_backend3's master
+# has changed since the copy, which a new copy PR would take over:
+#
+#   c=$(yq '.generatorOptions.annotations["verseghy.net/website-backend3-commit"]' verseghy-website/media/kustomization.yaml)
+#   KUBECONFIG=/dev/null oc kustomize verseghy-website/media | yq -o json 'select(.kind == "ConfigMap") | .data["nginx.conf"]' | jq -j . | diff - <({ echo "# Copy of website_backend3 deploy/media/nginx.conf at $c with its comment lines removed; never edit it here, see kustomization.yaml."; git -C "$b3" show "$c:deploy/media/nginx.conf" | grep -v '^[[:space:]]*#' | cat -s; })
+#   KUBECONFIG=/dev/null oc kustomize verseghy-website/media | yq 'select(.kind == "Deployment") | .spec.template.spec.containers[] | select(.name == "media") | .image' | diff - <(git -C "$b3" show "$c:deploy/media/image.txt")
+#   git -C "$b3" diff --stat "$c" origin/master -- deploy/media/
+#
+# The media image is not in image-updater/imageupdater.yaml and has no images
+# entry here: it moves only with such a copy. The exporter's image is pinned by
+# digest in deployment.yaml and bumped by hand, as PostgreSQL's exporter is.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - route-storage-admin.yaml
+  - service.yaml
+configMapGenerator:
+  # The generated name carries a hash of the data, so a new copy changes the
+  # pod template and rolls the Deployment. The file is mounted with subPath,
+  # which never sees an update of a ConfigMap in place.
+  - name: media-nginx
+    files:
+      - nginx.conf
+generatorOptions:
+  annotations:
+    verseghy.net/website-backend3-commit: 52c4dce06eac68a9482be573e986d55534e0ff15
+    # The ConfigMap of the previous copy stays in the cluster, because
+    # auto-sync does not prune. This keeps it from marking the Application
+    # OutOfSync; a human may prune it once the rollout has finished.
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
