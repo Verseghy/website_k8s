@@ -1,0 +1,21 @@
+# static: nginx serving the old /docs and /images files of
+# verseghy-gimnazium.net (Application verseghy-website-static), from the image
+# that website_static builds with Pipelines-as-Code.
+#
+# The first tag was set by hand: the full SHA of a website_static master
+# commit whose Pipelines-as-Code build succeeded. Image Updater follows the
+# image with its newest-build strategy
+# (verseghy-website/image-updater/imageupdater.yaml): when a newer master
+# build exists, it opens a pull request that changes newTag below, and that PR
+# waits for review like every other PR here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - route-docs.yaml
+  - route-images.yaml
+  - service.yaml
+images:
+  - name: ghcr.io/verseghy/website_static
+    newTag: dbfe862d79d1c5bc661797f0cccdf33567e1a10b
+    newName: ghcr.io/verseghy/website_static

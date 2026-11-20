@@ -1,3 +1,6 @@
+# The Routes (route-docs.yaml, route-images.yaml) target the port named http,
+# which stays port 80 here. It sends to the container port named http, nginx
+# on 8080 in deployment.yaml.
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,4 +12,4 @@ spec:
     - name: http
       protocol: TCP
       port: 80
-      targetPort: 80
+      targetPort: http
