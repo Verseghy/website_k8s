@@ -1,0 +1,27 @@
+# Pipelines-as-Code Repository binding for website_static, the recipe that
+# builds the image serving verseghy-gimnazium.net's /docs and /images: Red
+# Hat's UBI 9 nginx 1.26 image with the files copied out of the old Docker
+# Hub image at build time. The repository holds no content of its own.
+#
+# This CR opts the GitHub repository into PAC and routes its events into the
+# `verseghy` namespace. Authentication is handled by the cluster-global PAC
+# GitHub App (app-id 1271459 in openshift-pipelines/pipelines-as-code-secret),
+# so no per-repo provider secret is required here.
+#
+# When a `push` event for this repo arrives, PAC reads `.tekton/push.yaml` from
+# the pushed revision and runs it as a PipelineRun in this namespace. See that
+# file (in the website_static repo) for the actual build trigger logic.
+#
+# Ordering: this CR must exist before the first push to website_static's
+# master that carries `.tekton/push.yaml`. PAC ignores events for repositories
+# without a Repository CR, so a push that lands first produces no image.
+apiVersion: pipelinesascode.tekton.dev/v1alpha1
+kind: Repository
+metadata:
+  name: website-static
+  namespace: verseghy
+spec:
+  url: https://github.com/Verseghy/website_static
+  # Serialize PipelineRuns for this repo so two rapid master pushes don't kick
+  # off competing image builds; the latest queued run wins.
+  concurrency_limit: 1
