@@ -20,8 +20,9 @@
 # The pull policy is IfNotPresent so a cached image survives a registry outage
 # (the same failure mode that took down Prow's MinIO in October 2026).
 #
-# Consumers: website_frontend/.tekton/push.yaml, website_backend2/.tekton/push.yaml
-# and (from its bootstrap PR on) website_backend3/.tekton/push.yaml reference it
+# Consumers: website_frontend/.tekton/push.yaml, website_backend2/.tekton/push.yaml,
+# (from its bootstrap PR on) website_backend3/.tekton/push.yaml and
+# website_static/.tekton/push.yaml reference it
 # as {"name":"buildah-ubi9","kind":"BuildStrategy"}. Drop this file again once
 # the nodes are replaced with x86-64-v3 capable hardware.
 #
