@@ -20,7 +20,8 @@ spec:
         - name: app
           image: verseghy/website_static
           ports:
-            - containerPort: 80
+            - name: http
+              containerPort: 80
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: cache
