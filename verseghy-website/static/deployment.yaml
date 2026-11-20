@@ -1,3 +1,17 @@
+# static: nginx serving the old documents and pictures of
+# verseghy-gimnazium.net, which route-docs.yaml and route-images.yaml send
+# here (/docs and /images). The image is built from website_static, a
+# repository that holds only the recipe: Red Hat's UBI 9 nginx 1.26 image with
+# the files copied in at build time from the image that served them before;
+# its README says where they come from. kustomization.yaml sets the tag.
+#
+# Runs under restricted-v2 with an arbitrary UID in group 0, as the media
+# server does; the pod template requires that SCC, so a higher-priority SCC
+# granted later cannot take over. The image's files are owned by root and
+# readable by every user, and its nginx needs no capability and no fixed UID.
+# It writes only its pid file in /run and the temporary directories that it
+# creates at start under /var/lib/nginx/tmp, so with a read-only root
+# filesystem those two paths are emptyDirs.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -9,23 +23,87 @@ spec:
       app: static
   strategy:
     type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
         app: static
+      annotations:
+        openshift.io/required-scc: restricted-v2
     spec:
-      serviceAccount: anyuid
-      hostUsers: false
+      # Named, not left out: the pods ran as the anyuid ServiceAccount before,
+      # set through the deprecated serviceAccount field, and the API server
+      # keeps that value in serviceAccountName when the field is only
+      # removed, so leaving both out would keep anyuid.
+      serviceAccountName: default
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # nginx stops on the image's stop signal, SIGQUIT, after its requests in
+      # flight, so a download of one of the larger files (up to 24 MB) that has
+      # started when a rollout stops this pod gets two minutes to finish.
+      terminationGracePeriodSeconds: 130
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: app
-          image: verseghy/website_static
+          image: ghcr.io/verseghy/website_static
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: 80
-          imagePullPolicy: IfNotPresent
+              containerPort: 8080
+          # A small file of the served tree, which the image digest fixes, so
+          # the probes check that nginx answers and can read the files under
+          # the pod's UID. No Route sends anything outside /docs and /images
+          # here.
+          readinessProbe:
+            httpGet:
+              path: /docs/pdf.png
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /docs/pdf.png
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/usr/bin/sleep", "5"]
+          # nginx sending static files with sendfile; the image's
+          # nginx.conf starts one worker per CPU of the node.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 500m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           volumeMounts:
-            - name: cache
-              mountPath: /var/cache/nginx
+            # nginx's pid file (/run/nginx.pid in the image's nginx.conf).
+            - name: run
+              mountPath: /run
+            # The client_body, proxy, fastcgi, uwsgi and scgi temporary
+            # directories, which nginx creates at start.
+            - name: tmp
+              mountPath: /var/lib/nginx/tmp
       volumes:
-        - name: cache
-          emptyDir: {}
+        - name: run
+          emptyDir:
+            sizeLimit: 1Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi

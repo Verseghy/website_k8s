@@ -61,6 +61,19 @@ spec:
             updateStrategy: newest-build
             allowTags: 'regexp:^[0-9a-f]{40}$'
             pullSecret: "pullsecret:verseghy/ghcr-pull-secret"
+    # website_static builds an image on every push to its master, which
+    # changes rarely: in practice to move to a newer Red Hat base image.
+    - namePattern: verseghy-website-static
+      images:
+        - alias: static
+          imageName: ghcr.io/verseghy/website_static
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/verseghy/website_static
+          commonUpdateSettings:
+            updateStrategy: newest-build
+            allowTags: 'regexp:^[0-9a-f]{40}$'
+            pullSecret: "pullsecret:verseghy/ghcr-pull-secret"
     - namePattern: verseghy-website-mysql
       images:
         - alias: mysql
